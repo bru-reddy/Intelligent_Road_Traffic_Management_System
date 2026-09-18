@@ -355,7 +355,7 @@ class TrafficMonitoringService:
 
         results: List[Dict[str, Any]] = []
 
-        for road in monitoring_roads:
+               for road in monitoring_roads:
             try:
                 live = self.tomtom.get_live_traffic(
                     road_name=road["road_name"],
@@ -374,6 +374,40 @@ class TrafficMonitoringService:
                 )
 
                 results.append(normalized)
+
+            except Exception as exc:
+                print(
+                    f"TomTom traffic failed for "
+                    f"{road['road_name']}: {exc}"
+                )
+
+                results.append(
+                    {
+                        "road_name": road["road_name"],
+                        "latitude": road["latitude"],
+                        "longitude": road["longitude"],
+                        "vehicle_count": 0,
+                        "avg_speed_kmph": None,
+                        "free_flow_speed_kmph": None,
+                        "current_speed": None,
+                        "free_flow_speed": None,
+                        "travel_time": None,
+                        "confidence": None,
+                        "congestion_level": "unknown",
+                        "road_closed": False,
+                        "coordinates": [],
+                        "data_source": "tomtom",
+                        "recorded_at": datetime.now(
+                            timezone.utc
+                        ).isoformat(),
+                        "error": (
+                            "Live traffic data is currently "
+                            "unavailable for this road."
+                        ),
+                    }
+                )
+
+        return results
 
 except Exception as exc:
     print(
