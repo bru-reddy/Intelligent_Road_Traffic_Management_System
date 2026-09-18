@@ -375,8 +375,11 @@ class TrafficMonitoringService:
 
                 results.append(normalized)
 
-            except Exception:
-                results.append(
+except Exception as exc:
+    print(
+        f"TomTom traffic failed for "
+        f"{road['road_name']}: {exc}"
+    )                results.append(
                     {
                         "road_name": road["road_name"],
                         "latitude": road["latitude"],
