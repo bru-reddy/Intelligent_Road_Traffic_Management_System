@@ -308,19 +308,36 @@ export function getStoredMonitoringScope() {
             area: parsed.area,
             latitude: Number(catalogMatch.latitude),
             longitude: Number(catalogMatch.longitude),
+            coordinatesResolved: true,
           };
         }
 
-        if (
+        const hasValidStoredCoordinates =
+          parsed.latitude !== null &&
+          parsed.latitude !== undefined &&
+          parsed.longitude !== null &&
+          parsed.longitude !== undefined &&
           Number.isFinite(Number(parsed.latitude)) &&
-          Number.isFinite(Number(parsed.longitude))
-        ) {
+          Number.isFinite(Number(parsed.longitude)) &&
+          !(Number(parsed.latitude) === 0 && Number(parsed.longitude) === 0);
+
+        if (hasValidStoredCoordinates) {
           return {
             ...parsed,
             latitude: Number(parsed.latitude),
             longitude: Number(parsed.longitude),
+            coordinatesResolved: true,
           };
         }
+
+        const stateInfo = getStateInfo(parsed.state);
+        return {
+          state: parsed.state,
+          area: parsed.area,
+          latitude: Number(stateInfo?.latitude),
+          longitude: Number(stateInfo?.longitude),
+          coordinatesResolved: false,
+        };
       }
     }
   } catch {
@@ -331,11 +348,19 @@ export function getStoredMonitoringScope() {
 }
 
 export function storeMonitoringScope(scope) {
+  const latitude = Number(scope?.latitude);
+  const longitude = Number(scope?.longitude);
+  const validCoordinates =
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    !(latitude === 0 && longitude === 0);
+
   const normalized = {
     state: scope?.state || "Telangana",
     area: scope?.area || "Hyderabad",
-    latitude: Number(scope?.latitude),
-    longitude: Number(scope?.longitude),
+    latitude: validCoordinates ? latitude : undefined,
+    longitude: validCoordinates ? longitude : undefined,
+    coordinatesResolved: validCoordinates,
   };
 
   localStorage.setItem(
