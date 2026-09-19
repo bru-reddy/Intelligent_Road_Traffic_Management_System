@@ -713,6 +713,19 @@ out center tags;
                 if area:
                     normalized["area"] = str(area).strip()
 
+                # Persist successful provider observations so the
+                # Analytics page can immediately use the same live
+                # traffic data for the selected monitoring scope.
+                try:
+                    self.store_tomtom_observations([normalized])
+                except Exception as persist_exc:
+                    # Persistence is best-effort; live monitoring must
+                    # still return the provider result if the database
+                    # is temporarily unavailable.
+                    print(
+                        f"TomTom observation persistence failed: {persist_exc}"
+                    )
+
                 results.append(normalized)
 
             except Exception as exc:
