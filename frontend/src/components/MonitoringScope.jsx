@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { searchRoutes } from "../services/api";
 import {
   INDIA_STATES,
@@ -21,6 +21,7 @@ export default function MonitoringScope({
   const [area, setArea] = useState(initial.area);
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const searchTimerRef = useRef(null);
 
   const localSuggestions = useMemo(
     () => getAreasForState(state, area),
@@ -90,32 +91,80 @@ export default function MonitoringScope({
     setSuggestions([]);
   };
 
-  const searchArea = async (value) => {
+  const searchArea = (value) => {
     setArea(value);
-    setSuggestions(getAreasForState(state, value).slice(0, 8));
 
-    if (value.trim().length < 2) return;
+    clearTimeout(searchTimerRef.current);
 
-    setLoading(true);
-    try {
-      const response = await searchRoutes({ q: value, state });
-      const remote = Array.isArray(response?.results) ? response.results : [];
-      const merged = [...remote, ...getAreasForState(state, value)];
-      const seen = new Set();
-      setSuggestions(
-        merged.filter((item) => {
-          const key = normalize(item?.name || item?.label || item?.address);
-          if (!key || seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        }).slice(0, 8)
-      );
-    } catch {
-      // Local state/district/city data remains available.
-    } finally {
+    const local = getAreasForState(
+      state,
+      value
+    ).slice(0, 8);
+
+    setSuggestions(local);
+
+    if (value.trim().length < 2) {
       setLoading(false);
+      return;
     }
+
+    searchTimerRef.current = setTimeout(
+      async () => {
+        setLoading(true);
+
+        try {
+          const response = await searchRoutes({
+            q: value,
+            state,
+          });
+
+          const remote = Array.isArray(
+            response?.results
+          )
+            ? response.results
+            : [];
+
+          const merged = [
+            ...remote,
+            ...getAreasForState(
+              state,
+              value
+            ),
+          ];
+
+          const seen = new Set();
+
+          setSuggestions(
+            merged
+              .filter((item) => {
+                const key = normalize(
+                  item?.name ||
+                    item?.label ||
+                    item?.address
+                );
+
+                if (!key || seen.has(key)) {
+                  return false;
+                }
+
+                seen.add(key);
+                return true;
+              })
+              .slice(0, 8)
+          );
+        } catch {
+          // Local state/district/city data remains available.
+        } finally {
+          setLoading(false);
+        }
+      },
+      350
+    );
   };
+
+  useEffect(() => {
+    return () => clearTimeout(searchTimerRef.current);
+  }, []);
 
   const selectState = (nextState) => {
     setState(nextState);
