@@ -167,13 +167,22 @@ export default function MonitoringScope({
   }, []);
 
   const selectState = (nextState) => {
-    setState(nextState);
+    clearTimeout(searchTimerRef.current);
+
     const info = getStateInfo(nextState);
-    chooseArea({
-      name: info?.capital || nextState,
+    const nextArea = info?.capital || nextState;
+
+    storeMonitoringScope({
+      state: nextState,
+      area: nextArea,
       latitude: info?.latitude,
       longitude: info?.longitude,
     });
+
+    setState(nextState);
+    setArea(nextArea);
+    setSuggestions([]);
+    setLoading(false);
   };
 
   return (
