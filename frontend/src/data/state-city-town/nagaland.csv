@@ -1,0 +1,7 @@
+state,district,city_or_town,latitude,longitude,population,source,location_type
+"Nagaland","Dimapur","Dimapur","25.8629885","93.7536663","375782","Vynex Indian Cities Geodata","City/Town"
+"Nagaland","Kohima","Kohima","25.6585963","94.1053307","99039","Vynex Indian Cities Geodata","City/Town"
+"Nagaland","","Mokokchung","","","","Existing IRTMS India city catalog","City/Town"
+"Nagaland","","Tuensang","","","","Existing IRTMS India city catalog","City/Town"
+"Nagaland","","Wokha","","","","Existing IRTMS India city catalog","City/Town"
+"Nagaland","","Zunheboto","","","","Existing IRTMS India city catalog","City/Town"

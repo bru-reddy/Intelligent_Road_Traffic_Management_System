@@ -1,0 +1,5 @@
+state,district,city_or_town,latitude,longitude,population,source,location_type
+"Manipur","Imphal West; Imphal East","Imphal","24.8170111","93.9368439","264986","Vynex Indian Cities Geodata","City/Town"
+"Manipur","","Lilong","","","","Existing IRTMS India city catalog","City/Town"
+"Manipur","","Mayang Imphal","","","","Existing IRTMS India city catalog","City/Town"
+"Manipur","","Thoubal","","","","Existing IRTMS India city catalog","City/Town"

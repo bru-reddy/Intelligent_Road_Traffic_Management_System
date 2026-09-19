@@ -1,0 +1,4 @@
+state,district,city_or_town,latitude,longitude,population,source,location_type
+"Meghalaya","","Nongstoin","","","","Existing IRTMS India city catalog","City/Town"
+"Meghalaya","East Khassi Hills","Shillong","25.578765","91.893187","143299","Vynex Indian Cities Geodata","City/Town"
+"Meghalaya","","Tura","","","","Existing IRTMS India city catalog","City/Town"

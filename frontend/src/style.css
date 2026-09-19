@@ -13710,3 +13710,96 @@ body,
     display: none !important;
   }
 }
+
+/* ============================================================
+   FINAL MOBILE CONTENT FIXES
+   ============================================================ */
+.vehicle-estimate-note {
+  display: block;
+  margin-top: 2px;
+  color: #6f96b4;
+  font-size: 8px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 800px) {
+  .irtms-main-layout {
+    overflow-x: hidden !important;
+  }
+
+  .content {
+    padding: 0 !important;
+  }
+
+  .page-content {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .page-title {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+  }
+
+  .page-title-actions {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+
+  .page-title-actions .btn {
+    min-height: 40px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .monitoring-summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .panel {
+    max-width: 100% !important;
+  }
+
+  .table-wrapper {
+    max-width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .traffic-observations-table,
+  .data-table {
+    min-width: 760px;
+  }
+
+  .monitoring-scope select {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats {
+    grid-template-columns: 1fr !important;
+  }
+
+  .top-navbar {
+    min-height: 62px !important;
+  }
+
+  .navbar-system-name {
+    font-size: 11px !important;
+  }
+
+  .page-title h1,
+  .irtms-page-area .page-title h1 {
+    font-size: 25px !important;
+  }
+
+  .panel-header {
+    flex-wrap: wrap;
+  }
+}

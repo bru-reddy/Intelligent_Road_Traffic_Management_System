@@ -117,6 +117,11 @@ class Settings:
         15,
     )
 
+    TRAFFIC_SIMULATION_FALLBACK: bool = _get_bool(
+        "TRAFFIC_SIMULATION_FALLBACK",
+        True,
+    )
+
     FRONTEND_URL: str = _get_env(
         "FRONTEND_URL",
         "http://localhost:5173",

@@ -1,0 +1,7 @@
+state,district,city_or_town,latitude,longitude,population,source,location_type
+"Goa","","Mapusa","","","","Existing IRTMS India city catalog","City/Town"
+"Goa","South Goa","Margao","15.2832187","73.986191","87650","Vynex Indian Cities Geodata","City/Town"
+"Goa","","Marmagao","","","","Existing IRTMS India city catalog","City/Town"
+"Goa","South Goa","Mormugao","15.3874352","73.8154394","97085","Vynex Indian Cities Geodata","City/Town"
+"Goa","North Goa","Panaji","15.4909301","73.8278496","114405","Vynex Indian Cities Geodata","City/Town"
+"Goa","South Goa","Vasco","15.3860329","73.8440398","100485","Vynex Indian Cities Geodata","City/Town"

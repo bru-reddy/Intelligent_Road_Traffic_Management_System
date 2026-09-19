@@ -1,0 +1,4 @@
+state,district,city_or_town,latitude,longitude,population,source,location_type
+"Mizoram","Aizwal","Aizawl","23.727107","92.7176389","293416","Vynex Indian Cities Geodata","City/Town"
+"Mizoram","","Lunglei","","","","Existing IRTMS India city catalog","City/Town"
+"Mizoram","","Saiha","","","","Existing IRTMS India city catalog","City/Town"

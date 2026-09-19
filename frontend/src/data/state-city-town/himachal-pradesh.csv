@@ -1,0 +1,9 @@
+state,district,city_or_town,latitude,longitude,population,source,location_type
+"Himachal Pradesh","","Kullu","","","","Existing IRTMS India city catalog","City/Town"
+"Himachal Pradesh","","Manali","","","","Existing IRTMS India city catalog","City/Town"
+"Himachal Pradesh","","Mandi","","","","Existing IRTMS India city catalog","City/Town"
+"Himachal Pradesh","","Nahan","","","","Existing IRTMS India city catalog","City/Town"
+"Himachal Pradesh","","Palampur","","","","Existing IRTMS India city catalog","City/Town"
+"Himachal Pradesh","Shimla","Shimla","31.1048145","77.1734033","171817","Vynex Indian Cities Geodata","City/Town"
+"Himachal Pradesh","","Solan","","","","Existing IRTMS India city catalog","City/Town"
+"Himachal Pradesh","","Sundarnagar","","","","Existing IRTMS India city catalog","City/Town"

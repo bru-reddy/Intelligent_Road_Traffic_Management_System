@@ -1,0 +1,4 @@
+state,district,city_or_town,latitude,longitude,population,source,location_type
+"Arunachal Pradesh","Papum Pare","Itanagar","27.081581","93.6027","34970","Vynex Indian Cities Geodata","City/Town"
+"Arunachal Pradesh","","Naharlagun","","","","Existing IRTMS India city catalog","City/Town"
+"Arunachal Pradesh","","Pasighat","","","","Existing IRTMS India city catalog","City/Town"

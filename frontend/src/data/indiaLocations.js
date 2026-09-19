@@ -108,7 +108,7 @@ export function getAreasForState(stateName, query = "") {
       label: `${city.name}, ${stateName}`,
       state: stateName,
       district: city.district || "",
-      type: "City",
+      type: "City / Town",
       latitude: Number.isFinite(Number(city.latitude)) ? Number(city.latitude) : undefined,
       longitude: Number.isFinite(Number(city.longitude)) ? Number(city.longitude) : undefined,
       source: city.source || "India location catalog",
@@ -137,7 +137,7 @@ export function getAreasForState(stateName, query = "") {
   });
 
   const q = normalize(query);
-  if (!q) return unique.slice(0, 50);
+  if (!q) return unique.slice(0, 5000);
 
   return unique
     .map((item) => {

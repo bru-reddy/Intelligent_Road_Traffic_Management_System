@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models.traffic import TrafficRecord
 from app.modules.traffic_monitoring.providers.tomtom import TomTomProvider
 
@@ -349,6 +350,130 @@ class TrafficMonitoringService:
 
         return valid_roads
 
+    @staticmethod
+    def _build_simulated_traffic(
+        latitude: float,
+        longitude: float,
+        state: Optional[str],
+        area: Optional[str],
+    ) -> List[Dict[str, Any]]:
+        """
+        Provide clearly-labelled simulated observations when the live
+        provider is unavailable. These values are for UI/demo continuity
+        and must never be presented as real-world traffic measurements.
+        """
+        import hashlib
+        import math
+        import time
+
+        state_name = str(state or "India").strip()
+        area_name = str(area or "Selected monitoring area").strip()
+
+        seed_text = f"{state_name}|{area_name}|{latitude:.5f}|{longitude:.5f}"
+        seed = int(
+            hashlib.sha256(seed_text.encode("utf-8")).hexdigest()[:8],
+            16,
+        )
+
+        minute_phase = int(time.time() // 60)
+        points: List[Dict[str, Any]] = []
+
+        offsets = [
+            (-0.008, -0.010),
+            (0.006, -0.004),
+            (-0.004, 0.008),
+            (0.010, 0.006),
+            (-0.009, 0.012),
+        ]
+
+        corridor_names = [
+            "Central Corridor",
+            "Main Road Corridor",
+            "Market Corridor",
+            "Ring Road Corridor",
+            "Highway Connector",
+        ]
+
+        for index, (lat_offset, lon_offset) in enumerate(offsets):
+            phase = (
+                seed % 360
+            ) / 57.2958 + (minute_phase + index * 7) * 0.035
+
+            free_flow = 55.0 + ((seed + index * 13) % 16)
+            speed_ratio = 0.42 + (
+                0.30 * ((math.sin(phase) + 1.0) / 2.0)
+            )
+            current_speed = max(
+                18.0,
+                min(
+                    free_flow,
+                    free_flow * speed_ratio,
+                ),
+            )
+
+            congestion = TrafficMonitoringService.calculate_congestion(
+                current_speed,
+                free_flow,
+            )
+
+            # This is an explicitly estimated demo volume, not a
+            # sensor-derived vehicle count.
+            vehicle_count = int(
+                250
+                + (1.0 - speed_ratio) * 1100
+                + ((seed + index * 97) % 180)
+            )
+
+            point_latitude = max(
+                -90.0,
+                min(90.0, float(latitude) + lat_offset),
+            )
+            point_longitude = max(
+                -180.0,
+                min(180.0, float(longitude) + lon_offset),
+            )
+
+            points.append(
+                {
+                    "id": f"sim-{seed}-{index}",
+                    "road_name": (
+                        f"{area_name} — {corridor_names[index]}"
+                    ),
+                    "state": state_name,
+                    "area": area_name,
+                    "latitude": round(point_latitude, 6),
+                    "longitude": round(point_longitude, 6),
+                    "vehicle_count": vehicle_count,
+                    "vehicle_count_estimated": True,
+                    "avg_speed_kmph": round(current_speed, 2),
+                    "free_flow_speed_kmph": round(free_flow, 2),
+                    "current_speed": round(current_speed, 2),
+                    "free_flow_speed": round(free_flow, 2),
+                    "congestion_level": congestion,
+                    "road_status": (
+                        "Critical traffic"
+                        if congestion == "severe"
+                        else "Heavy traffic"
+                        if congestion == "high"
+                        else "Moderate traffic"
+                        if congestion == "medium"
+                        else "Free flowing"
+                    ),
+                    "travel_time": None,
+                    "confidence": None,
+                    "road_closed": False,
+                    "coordinates": [],
+                    "data_source": "simulation-fallback",
+                    "data_source_label": "Simulated demo traffic",
+                    "is_simulated": True,
+                    "recorded_at": datetime.now(
+                        timezone.utc
+                    ).isoformat(),
+                }
+            )
+
+        return points
+
     def get_live_traffic_tomtom(
         self,
         roads: Optional[List[Dict[str, Any]]] = None,
@@ -479,6 +604,15 @@ class TrafficMonitoringService:
                                 for point in results
                             ):
                                 results.append(demo)
+
+        if not results and settings.TRAFFIC_SIMULATION_FALLBACK:
+            selected = monitoring_roads[0]
+            results = self._build_simulated_traffic(
+                latitude=selected["latitude"],
+                longitude=selected["longitude"],
+                state=state,
+                area=area,
+            )
 
         return results
 

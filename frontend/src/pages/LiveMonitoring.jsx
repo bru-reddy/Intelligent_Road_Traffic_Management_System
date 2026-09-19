@@ -218,9 +218,17 @@ function normalizeTrafficPoint(item, index) {
     roadStatus,
     recordedAt,
     dataSource:
+      item?.data_source_label ??
       item?.data_source ??
       item?.dataSource ??
       "Traffic monitoring",
+    isSimulated:
+      Boolean(
+        item?.is_simulated ||
+        item?.data_source === "simulation-fallback"
+      ),
+    vehicleCountEstimated:
+      Boolean(item?.vehicle_count_estimated),
     confidence:
       item?.confidence ??
       item?.confidence_score ??
@@ -542,6 +550,16 @@ export default function LiveMonitoring() {
     };
   }, [points]);
 
+  const hasSimulatedPoints = useMemo(
+    () => points.some((point) => point.isSimulated),
+    [points]
+  );
+
+  const hasEstimatedVehicles = useMemo(
+    () => points.some((point) => point.vehicleCountEstimated),
+    [points]
+  );
+
   const mapPoints = useMemo(() => {
     return points.filter(
       (point) =>
@@ -718,9 +736,11 @@ export default function LiveMonitoring() {
               <span>Data source</span>
 
               <strong>
-                {isOperationalRole
-                  ? "TomTom Traffic"
-                  : "Stored traffic"}
+                {hasSimulatedPoints
+                  ? "Simulation fallback"
+                  : isOperationalRole
+                    ? "TomTom Traffic"
+                    : "Stored traffic"}
               </strong>
             </div>
 
@@ -748,7 +768,11 @@ export default function LiveMonitoring() {
                 }
               >
                 <span className="status-dot" />
-                {error ? "Unavailable" : "Online"}
+                {error
+                  ? "Unavailable"
+                  : hasSimulatedPoints
+                    ? "Demo data"
+                    : "Online"}
               </strong>
             </div>
           </div>
@@ -764,8 +788,10 @@ export default function LiveMonitoring() {
             </strong>
             <span>
               {mapPoints.length > 0
-                ? "Live traffic observations are available for this monitoring scope."
-                : "Location selected, but no live traffic observations are currently available for this scope."}
+                ? hasSimulatedPoints
+                  ? "Traffic simulation is active because live provider data is unavailable."
+                  : "Live traffic observations are available for this monitoring scope."
+                : "Location selected, but no traffic observations are currently available for this scope."}
             </span>
           </div>
         </div>
@@ -834,7 +860,7 @@ export default function LiveMonitoring() {
             <h3>Current Traffic Observations</h3>
             <p>
               Current speed, free-flow speed, travel
-              time, vehicles and road status.
+              time, vehicle volume and road status.
             </p>
           </div>
         </div>
@@ -917,6 +943,11 @@ export default function LiveMonitoring() {
 
                     <td>
                       {point.vehicleCount.toLocaleString()}
+                      {point.vehicleCountEstimated && (
+                        <small className="vehicle-estimate-note">
+                          estimated
+                        </small>
+                      )}
                     </td>
 
                     <td>
