@@ -682,7 +682,9 @@ export default function Dashboard() {
     };
   }, [points]);
 
-  const hasSimulatedPoints = points.some((point) => point.isSimulated);\n\n  const activeAlerts = alerts.filter(
+  const hasSimulatedPoints = points.some((point) => point.isSimulated);
+
+  const activeAlerts = alerts.filter(
     (alert) =>
       String(
         alert?.status || "active"
