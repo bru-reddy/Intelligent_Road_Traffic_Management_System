@@ -28,6 +28,11 @@ class CreateAlertRequest(BaseModel):
         max_length=255,
     )
 
+    state: Optional[str] = Field(
+        default=None,
+        max_length=100,
+    )
+
     road_name: str = Field(
         ...,
         min_length=1,
@@ -88,6 +93,16 @@ def get_alerts(
     severity: Optional[str] = Query(
         default=None,
     ),
+    state: Optional[str] = Query(
+        default=None,
+        min_length=2,
+        max_length=100,
+    ),
+    area: Optional[str] = Query(
+        default=None,
+        min_length=2,
+        max_length=255,
+    ),
     db: Session = Depends(get_db),
     _user=Depends(get_current_user),
 ):
@@ -109,6 +124,8 @@ def get_alerts(
         return service.get_alerts(
             status=status_filter,
             severity=severity,
+            state=state,
+            area=area,
         )
 
     except ValueError as exc:
@@ -126,6 +143,8 @@ def get_alerts(
 
 @router.get("/active")
 def get_active_alerts(
+    state: Optional[str] = Query(default=None, min_length=2, max_length=100),
+    area: Optional[str] = Query(default=None, min_length=2, max_length=255),
     db: Session = Depends(get_db),
     _user=Depends(get_current_user),
 ):
@@ -136,7 +155,10 @@ def get_active_alerts(
     service = AlertService(db)
 
     try:
-        return service.get_active_alerts()
+        return service.get_active_alerts(
+            state=state,
+            area=area,
+        )
 
     except Exception:
         raise HTTPException(
@@ -147,6 +169,8 @@ def get_active_alerts(
 
 @router.get("/summary")
 def get_alert_summary(
+    state: Optional[str] = Query(default=None, min_length=2, max_length=100),
+    area: Optional[str] = Query(default=None, min_length=2, max_length=255),
     db: Session = Depends(get_db),
     _user=Depends(get_current_user),
 ):
@@ -157,7 +181,10 @@ def get_alert_summary(
     service = AlertService(db)
 
     try:
-        return service.get_summary()
+        return service.get_summary(
+            state=state,
+            area=area,
+        )
 
     except Exception:
         raise HTTPException(
@@ -194,6 +221,7 @@ def create_alert(
             severity=payload.severity,
             message=payload.description or "",
             area=payload.area,
+            state=payload.state,
             congestion_level=payload.congestion_level,
             current_speed_kmph=payload.current_speed_kmph,
             free_flow_speed_kmph=payload.free_flow_speed_kmph,
