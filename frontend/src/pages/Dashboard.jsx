@@ -551,7 +551,7 @@ export default function Dashboard() {
             ? normalizedTraffic
             : isDemoScope
               ? FALLBACK_POINTS
-              : buildSimulationPoints(monitoringScope)
+              : buildSimulationPoints(monitoringScope).map(normalizePoint)
         );
 
         try {
@@ -606,7 +606,7 @@ export default function Dashboard() {
         setPoints(
           isDemoScope
             ? FALLBACK_POINTS
-            : buildSimulationPoints(monitoringScope)
+            : buildSimulationPoints(monitoringScope).map(normalizePoint)
         );
       } finally {
         setLoading(false);
