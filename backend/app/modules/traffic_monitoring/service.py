@@ -40,6 +40,10 @@ DEFAULT_MONITORING_ROADS = [
 ]
 
 
+_OSM_ROAD_CACHE: Dict[str, tuple[float, List[Dict[str, Any]]]] = {}
+_OSM_ROAD_CACHE_TTL_SECONDS = 1800
+
+
 class TrafficMonitoringService:
     def __init__(self, db: Session):
         self.db = db
@@ -372,15 +376,30 @@ class TrafficMonitoringService:
         """
 
         import math
+        import time
         import requests
 
+        cache_key = f"{float(latitude):.4f}|{float(longitude):.4f}"
+        cached = TrafficMonitoringService._OSM_ROAD_CACHE.get(cache_key)
+        now = time.time()
+
+        if cached and now - cached[0] < _OSM_ROAD_CACHE_TTL_SECONDS:
+            return [dict(item) for item in cached[1]]
+
+        # Keep the lookup deliberately small and focused on named roads.
+        # This prevents the monitoring request from waiting on a huge
+        # Overpass response for dense cities.
         overpass_query = f"""
-[out:json][timeout:10];
-way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential)$"]
-  (around:7000,{float(latitude)},{float(longitude)});
+[out:json][timeout:5];
+way["highway"]["name"~".+"]
+  ["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential)$"]
+  (around:4000,{float(latitude)},{float(longitude)});
 out center tags;
 """
 
+        # One fast primary endpoint is preferable to serially waiting on
+        # multiple public Overpass servers. A second endpoint is used only
+        # when the first one fails.
         endpoints = [
             "https://overpass-api.de/api/interpreter",
             "https://overpass.kumi.systems/api/interpreter",
@@ -397,7 +416,7 @@ out center tags;
                         "User-Agent": "IRTMS/1.0 (traffic monitoring demo)",
                         "Accept": "application/json",
                     },
-                    timeout=12,
+                    timeout=6,
                 )
                 response.raise_for_status()
                 payload = response.json()
@@ -490,6 +509,12 @@ out center tags;
 
             if len(selected) >= limit:
                 break
+
+        if selected:
+            TrafficMonitoringService._OSM_ROAD_CACHE[cache_key] = (
+                time.time(),
+                [dict(item) for item in selected],
+            )
 
         return selected
 
