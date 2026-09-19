@@ -10,8 +10,24 @@ function hashSeed(value) {
 }
 
 function numeric(value, fallback) {
+  if (
+    value === null ||
+    value === undefined ||
+    String(value).trim() === ""
+  ) {
+    return fallback;
+  }
+
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+
+  if (
+    !Number.isFinite(parsed) ||
+    (parsed === 0 && fallback !== 0)
+  ) {
+    return fallback;
+  }
+
+  return parsed;
 }
 
 /**
