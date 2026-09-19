@@ -125,6 +125,30 @@ const CITY_SUGGESTIONS = [
   },
 ];
 
+const HYDERABAD_ROAD_SUGGESTIONS = [
+  "Hayathnagar",
+  "Uppal",
+  "LB Nagar",
+  "Gachibowli",
+  "Hitech City",
+  "Madhapur",
+  "Kukatpally",
+  "Mehdipatnam",
+  "Secunderabad",
+  "Banjara Hills",
+  "Begumpet",
+  "Raj Bhavan Road",
+  "Outer Ring Road",
+  "NH 65",
+  "NH 163",
+  "Gachibowli Main Road",
+  "Hitech City Road",
+  "LB Nagar Junction",
+  "Madhapur Road",
+  "Mehdipatnam-Tolichowki Road",
+  "S.D. Road",
+];
+
 function createInitialForm() {
   const now = new Date();
 
@@ -223,26 +247,94 @@ function locationLabel(item) {
  * Pune
  * Mumbai
  */
+function normalizeSearchText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function editDistance(a, b) {
+  const left = normalizeSearchText(a);
+  const right = normalizeSearchText(b);
+
+  const previous = Array.from(
+    { length: right.length + 1 },
+    (_, index) => index
+  );
+
+  for (let i = 1; i <= left.length; i += 1) {
+    const current = [i];
+
+    for (let j = 1; j <= right.length; j += 1) {
+      const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+
+      current[j] = Math.min(
+        current[j - 1] + 1,
+        previous[j] + 1,
+        previous[j - 1] + cost
+      );
+    }
+
+    for (let j = 0; j < current.length; j += 1) {
+      previous[j] = current[j];
+    }
+  }
+
+  return previous[right.length];
+}
+
 function getLocalCitySuggestions(query) {
-  const normalized = String(query || "")
-    .trim()
-    .toLowerCase();
+  const normalized = normalizeSearchText(query);
 
   if (normalized.length < 2) {
     return [];
   }
 
-  return CITY_SUGGESTIONS
-    .filter((city) => {
-      const name = city.name.toLowerCase();
-      const label = city.label.toLowerCase();
+  const roadSuggestions =
+    HYDERABAD_ROAD_SUGGESTIONS.map((name) => ({
+      name,
+      label: name,
+      source: "local-road",
+    }));
 
-      return (
-        name.startsWith(normalized) ||
-        label.includes(normalized)
+  const candidates = [
+    ...CITY_SUGGESTIONS,
+    ...roadSuggestions,
+  ];
+
+  return candidates
+    .map((item) => {
+      const label = normalizeSearchText(
+        locationLabel(item)
       );
+
+      const startsWith = label.startsWith(normalized);
+      const includes = label.includes(normalized);
+      const distance = editDistance(normalized, label);
+
+      const allowedDistance =
+        normalized.length >= 8
+          ? 2
+          : normalized.length >= 5
+            ? 1
+            : 0;
+
+      let score = 1000;
+
+      if (startsWith) {
+        score = 0;
+      } else if (includes) {
+        score = 10;
+      } else if (distance <= allowedDistance) {
+        score = 20 + distance;
+      }
+
+      return { item, score };
     })
-    .slice(0, 6);
+    .filter((entry) => entry.score < 1000)
+    .sort((a, b) => a.score - b.score)
+    .map((entry) => entry.item)
+    .slice(0, 8);
 }
 
 /*
