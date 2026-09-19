@@ -305,6 +305,11 @@ class AlertService:
                 "area",
                 None,
             ),
+            "state": getattr(
+                alert,
+                "state",
+                None,
+            ),
             "road_name": alert.road_name,
             "road": alert.road_name,
             "congestion_level": getattr(
@@ -348,6 +353,7 @@ class AlertService:
         severity: str,
         message: str,
         area: Optional[str] = None,
+        state: Optional[str] = None,
         congestion_level: Optional[str] = None,
         current_speed_kmph: Optional[float] = None,
         free_flow_speed_kmph: Optional[float] = None,
@@ -463,6 +469,11 @@ class AlertService:
             area=(
                 str(area).strip()
                 if area
+                else None
+            ),
+            state=(
+                str(state).strip()
+                if state
                 else None
             ),
             road_name=road_name,
@@ -806,6 +817,16 @@ class AlertService:
 
                 alert = Alert(
                     alert_type="traffic_congestion",
+                    state=getattr(
+                        record,
+                        "state",
+                        None,
+                    ),
+                    area=getattr(
+                        record,
+                        "area",
+                        None,
+                    ),
                     road_name=road_name,
                     congestion_level=congestion_level,
                     current_speed_kmph=current_speed,
