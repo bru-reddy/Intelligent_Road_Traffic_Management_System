@@ -100,6 +100,19 @@ def _ensure_scope_columns() -> None:
                 {"state": "Telangana"},
             )
 
+            connection.execute(
+                text(
+                    'UPDATE "traffic_records" '
+                    'SET area = :area '
+                    'WHERE area IS NULL '
+                    'AND state = :state'
+                ),
+                {
+                    "area": "Hyderabad",
+                    "state": "Telangana",
+                },
+            )
+
         if inspector.has_table("alerts"):
             connection.execute(
                 text(
