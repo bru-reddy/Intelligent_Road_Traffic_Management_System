@@ -8,18 +8,16 @@ import {
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-// Keep the application shell bootable even if one page module has a
-// runtime/import problem. Pages are loaded only when their route is used.
-const Login = React.lazy(() => import("./pages/Login"));
-const Register = React.lazy(() => import("./pages/Register"));
-const CommissionerRegister = React.lazy(() => import("./pages/CommissionerRegister"));
-const Dashboard = React.lazy(() => import("./pages/Dashboard"));
-const LiveMonitoring = React.lazy(() => import("./pages/LiveMonitoring"));
-const Prediction = React.lazy(() => import("./pages/Prediction"));
-const RoutePlanner = React.lazy(() => import("./pages/RoutePlanner"));
-const Alerts = React.lazy(() => import("./pages/Alerts"));
-const Analytics = React.lazy(() => import("./pages/Analytics"));
-const UserManagement = React.lazy(() => import("./pages/UserManagement"));
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import CommissionerRegister from "./pages/CommissionerRegister";
+import Dashboard from "./pages/Dashboard";
+import LiveMonitoring from "./pages/LiveMonitoring";
+import Prediction from "./pages/Prediction";
+import RoutePlanner from "./pages/RoutePlanner";
+import Alerts from "./pages/Alerts";
+import Analytics from "./pages/Analytics";
+import UserManagement from "./pages/UserManagement";
 
 class AppErrorBoundary extends React.Component {
   constructor(props) {
@@ -44,6 +42,11 @@ class AppErrorBoundary extends React.Component {
       return this.props.children;
     }
 
+    const message =
+      this.state.error?.message ||
+      String(this.state.error) ||
+      "Unknown application error.";
+
     return (
       <div className="irtms-app-error">
         <div className="irtms-app-error-card">
@@ -51,9 +54,13 @@ class AppErrorBoundary extends React.Component {
           <span className="irtms-app-error-eyebrow">IRTMS APPLICATION</span>
           <h1>Unable to load this page</h1>
           <p>
-            The application shell is running, but this screen encountered an
-            unexpected error. Reload the application to retry the page.
+            The application encountered an unexpected runtime error.
+            Reload the application to retry.
           </p>
+          <details className="irtms-app-error-details">
+            <summary>Technical error</summary>
+            <code>{message}</code>
+          </details>
           <button type="button" onClick={this.handleReload}>
             Reload IRTMS
           </button>
@@ -93,16 +100,10 @@ function AppRoutes() {
         />
 
         <Route element={<ProtectedLayout />}>
-          <Route
-            index
-            element={<Navigate to="/dashboard" replace />}
-          />
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/live" element={<LiveMonitoring />} />
-          <Route
-            path="/monitoring"
-            element={<Navigate to="/live" replace />}
-          />
+          <Route path="/monitoring" element={<Navigate to="/live" replace />} />
           <Route path="/prediction" element={<Prediction />} />
           <Route path="/routes" element={<RoutePlanner />} />
           <Route path="/alerts" element={<Alerts />} />
