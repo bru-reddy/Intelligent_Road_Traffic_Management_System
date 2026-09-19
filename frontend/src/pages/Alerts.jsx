@@ -568,6 +568,7 @@ export default function Alerts() {
 
       const payload = {
         area,
+        state: monitoringScope.state,
         road_name: roadName,
 
         alert_time:
