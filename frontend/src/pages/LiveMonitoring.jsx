@@ -11,7 +11,7 @@ import {
   getLiveTraffic,
   getLiveTomTomTraffic,
 } from "../services/api";
-import { getStoredMonitoringScope as readMonitoringScope from "../data/indiaLocations";
+import { getStoredMonitoringScope as readMonitoringScope } from "../data/indiaLocations";
 
 const REFRESH_INTERVAL = 60 * 1000;
 
