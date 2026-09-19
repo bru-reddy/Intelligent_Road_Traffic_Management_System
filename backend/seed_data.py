@@ -16,7 +16,7 @@ import csv
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.core.database import Base, SessionLocal, engine
+from app.core.database import SessionLocal, initialize_database
 from app.models.alert import Alert
 from app.models.traffic import TrafficRecord
 
@@ -527,9 +527,10 @@ def seed_alerts(db) -> int:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    Base.metadata.create_all(
-        bind=engine
-    )
+    # create_all() does not alter existing PostgreSQL tables.
+    # initialize_database() also applies the compatibility migration
+    # that adds state/area columns to existing deployments.
+    initialize_database()
 
     db = SessionLocal()
 
