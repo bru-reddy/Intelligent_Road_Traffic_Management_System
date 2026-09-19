@@ -25,6 +25,8 @@ class AnalyticsService:
     def get_heatmap(
         self,
         limit: int = 500,
+        state: Optional[str] = None,
+        area: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         limit = self._normalize_limit(
             limit,
@@ -32,12 +34,23 @@ class AnalyticsService:
             maximum=2000,
         )
 
-        records = (
-            self.db.query(TrafficRecord)
-            .filter(
-                TrafficRecord.latitude.isnot(None),
-                TrafficRecord.longitude.isnot(None),
+        query = self.db.query(TrafficRecord).filter(
+            TrafficRecord.latitude.isnot(None),
+            TrafficRecord.longitude.isnot(None),
+        )
+
+        if state:
+            query = query.filter(
+                TrafficRecord.state == state
             )
+
+        if area:
+            query = query.filter(
+                TrafficRecord.area == area
+            )
+
+        records = (
+            query
             .order_by(
                 TrafficRecord.recorded_at.desc()
             )
@@ -118,15 +131,16 @@ class AnalyticsService:
 
     def get_road_performance(
         self,
+        state: Optional[str] = None,
+        area: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        rows = (
-            self.db.query(
-                TrafficRecord.road_name,
-                func.avg(
-                    TrafficRecord.vehicle_count
-                ).label(
-                    "average_vehicle_count"
-                ),
+        query = self.db.query(
+            TrafficRecord.road_name,
+            func.avg(
+                TrafficRecord.vehicle_count
+            ).label(
+                "average_vehicle_count"
+            ),
                 func.avg(
                     TrafficRecord.avg_speed_kmph
                 ).label(
@@ -138,20 +152,28 @@ class AnalyticsService:
                     "average_free_flow_speed_kmph"
                 ),
                 func.count(
-                    TrafficRecord.id
-                ).label(
-                    "observation_count"
-                ),
+                TrafficRecord.id
+            ).label(
+                "observation_count"
+            ),
+        ).filter(
+            TrafficRecord.road_name.isnot(None)
+        )
+
+        if state:
+            query = query.filter(
+                TrafficRecord.state == state
             )
-            .filter(
-                TrafficRecord.road_name.isnot(None)
+
+        if area:
+            query = query.filter(
+                TrafficRecord.area == area
             )
-            .group_by(
-                TrafficRecord.road_name
-            )
-            .order_by(
-                TrafficRecord.road_name
-            )
+
+        rows = (
+            query
+            .group_by(TrafficRecord.road_name)
+            .order_by(TrafficRecord.road_name)
             .all()
         )
 
@@ -241,6 +263,8 @@ class AnalyticsService:
     def get_trends(
         self,
         hours: int = 24,
+        state: Optional[str] = None,
+        area: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Return hourly traffic trends.
@@ -280,16 +304,27 @@ class AnalyticsService:
             - timedelta(hours=hours)
         )
 
+        recent_query = self.db.query(
+            TrafficRecord
+        ).filter(
+            TrafficRecord.recorded_at.isnot(None),
+            TrafficRecord.recorded_at >= start_time,
+            TrafficRecord.recorded_at <= end_time,
+        )
+
+        if state:
+            recent_query = recent_query.filter(
+                TrafficRecord.state == state
+            )
+
+        if area:
+            recent_query = recent_query.filter(
+                TrafficRecord.area == area
+            )
+
         recent_records = (
-            self.db.query(TrafficRecord)
-            .filter(
-                TrafficRecord.recorded_at.isnot(None),
-                TrafficRecord.recorded_at >= start_time,
-                TrafficRecord.recorded_at <= end_time,
-            )
-            .order_by(
-                TrafficRecord.recorded_at.asc()
-            )
+            recent_query
+            .order_by(TrafficRecord.recorded_at.asc())
             .all()
         )
 
@@ -298,14 +333,25 @@ class AnalyticsService:
         if recent_records:
             records = recent_records
         else:
+            historical_query = self.db.query(
+                TrafficRecord
+            ).filter(
+                TrafficRecord.recorded_at.isnot(None)
+            )
+
+            if state:
+                historical_query = historical_query.filter(
+                    TrafficRecord.state == state
+                )
+
+            if area:
+                historical_query = historical_query.filter(
+                    TrafficRecord.area == area
+                )
+
             records = (
-                self.db.query(TrafficRecord)
-                .filter(
-                    TrafficRecord.recorded_at.isnot(None)
-                )
-                .order_by(
-                    TrafficRecord.recorded_at.asc()
-                )
+                historical_query
+                .order_by(TrafficRecord.recorded_at.asc())
                 .all()
             )
 
