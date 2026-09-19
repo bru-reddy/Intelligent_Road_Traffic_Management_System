@@ -37,6 +37,18 @@ class TrafficRecord(Base):
         index=True,
     )
 
+    state = Column(
+        String(100),
+        nullable=True,
+        index=True,
+    )
+
+    area = Column(
+        String(255),
+        nullable=True,
+        index=True,
+    )
+
     latitude = Column(
         Float,
         nullable=False,
