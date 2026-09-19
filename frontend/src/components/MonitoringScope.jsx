@@ -214,7 +214,7 @@ export default function MonitoringScope({
               value={area}
               onChange={(event) => searchArea(event.target.value)}
               onFocus={() => setSuggestions(localSuggestions.slice(0, 8))}
-              placeholder="Search any place in the selected state"
+              placeholder="Search a city, town, district or locality"
               autoComplete="off"
             />
             {loading && <span className="scope-spinner" />}
@@ -243,7 +243,7 @@ export default function MonitoringScope({
       </div>
 
       <small className="scope-attribution">
-        Location search powered by OpenStreetMap / Photon.
+        Search covers the selected state using the local India catalog with OpenStreetMap / Photon fallback.
       </small>
     </div>
   );
