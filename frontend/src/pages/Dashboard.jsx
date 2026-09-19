@@ -759,6 +759,22 @@ export default function Dashboard() {
         </div>
       )}
 
+      {!loading && (
+        <div className="dashboard-scope-status">
+          <span className="dashboard-scope-status-dot" />
+          <div>
+            <strong>
+              {monitoringScope?.area || monitoringScope?.state || "Selected area"}
+            </strong>
+            <span>
+              {points.length > 0
+                ? "Live traffic observations are available for this monitoring scope."
+                : "Location selected, but no live traffic observations are currently available for this scope."}
+            </span>
+          </div>
+        </div>
+      )}
+
       <section className="dashboard-stats-grid">
         <StatCard
           label="MONITORED POINTS"
@@ -823,8 +839,9 @@ export default function Dashboard() {
                 <h2>Live Traffic Map</h2>
 
                 <p>
-                  Real-time monitored road
-                  conditions and traffic flow
+                  {mappedPoints.length > 0
+                    ? "Real-time monitored road conditions and traffic flow"
+                    : "Selected monitoring location; live observations are currently unavailable"}
                 </p>
               </div>
             </div>
@@ -838,11 +855,9 @@ export default function Dashboard() {
               <span className="panel-divider" />
 
               <span>
-                {mappedPoints.length} monitoring
-                point
-                {mappedPoints.length === 1
-                  ? ""
-                  : "s"}
+                {mappedPoints.length > 0
+                  ? `${mappedPoints.length} monitoring point${mappedPoints.length === 1 ? "" : "s"}`
+                  : "No live observations"}
               </span>
 
               <button
@@ -881,6 +896,25 @@ export default function Dashboard() {
             ) : (
               <TrafficMap
                 points={mappedPoints}
+                center={[
+                  Number(monitoringScope?.latitude) || 17.385,
+                  Number(monitoringScope?.longitude) || 78.4867,
+                ]}
+                selectedLocation={
+                  mappedPoints.length === 0
+                    ? {
+                        name:
+                          monitoringScope?.area ||
+                          monitoringScope?.state ||
+                          "Selected monitoring location",
+                        state: monitoringScope?.state,
+                        latitude:
+                          Number(monitoringScope?.latitude),
+                        longitude:
+                          Number(monitoringScope?.longitude),
+                      }
+                    : null
+                }
               />
             )}
 
