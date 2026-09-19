@@ -17,9 +17,9 @@ DEFAULT_MONITORING_ROADS = [
         "longitude": 78.4867,
     },
     {
-        "road_name": "Raj Bhavan Road",
-        "latitude": 17.4156,
-        "longitude": 78.4678,
+        "road_name": "Gachibowli Main Road",
+        "latitude": 17.4401,
+        "longitude": 78.3489,
     },
     {
         "road_name": "Hitech City Road",
@@ -27,14 +27,14 @@ DEFAULT_MONITORING_ROADS = [
         "longitude": 78.3772,
     },
     {
-        "road_name": "Banjara Hills Road",
-        "latitude": 17.4156,
-        "longitude": 78.4347,
+        "road_name": "LB Nagar Junction",
+        "latitude": 17.3527,
+        "longitude": 78.5510,
     },
     {
-        "road_name": "Begumpet Road",
-        "latitude": 17.4431,
-        "longitude": 78.4639,
+        "road_name": "Secunderabad S.D. Road",
+        "latitude": 17.4399,
+        "longitude": 78.4983,
     },
 ]
 
@@ -381,31 +381,42 @@ class TrafficMonitoringService:
                     f"{road['road_name']}: {exc}"
                 )
 
-                results.append(
-                    {
-                        "road_name": road["road_name"],
-                        "latitude": road["latitude"],
-                        "longitude": road["longitude"],
-                        "vehicle_count": 0,
-                        "avg_speed_kmph": None,
-                        "free_flow_speed_kmph": None,
-                        "current_speed": None,
-                        "free_flow_speed": None,
-                        "travel_time": None,
-                        "confidence": None,
-                        "congestion_level": "unknown",
-                        "road_closed": False,
-                        "coordinates": [],
-                        "data_source": "tomtom",
-                        "recorded_at": datetime.now(
-                            timezone.utc
-                        ).isoformat(),
-                        "error": (
-                            "Live traffic data is currently "
-                            "unavailable for this road."
-                        ),
-                    }
+                # TomTom may be temporarily unavailable on the
+                # deployed free-tier service. Use the explicitly
+                # seeded demo-live observations instead of returning
+                # an HTTP-200 payload full of zero/unknown values.
+                fallback = (
+                    self.db.query(TrafficRecord)
+                    .filter(
+                        TrafficRecord.data_source == "demo-live"
+                    )
+                    .order_by(
+                        TrafficRecord.recorded_at.desc()
+                    )
+                    .all()
                 )
+
+                fallback_by_road = {
+                    record.road_name.strip().lower(): record
+                    for record in fallback
+                }
+
+                demo_record = fallback_by_road.get(
+                    road["road_name"].strip().lower()
+                )
+
+                if demo_record is not None:
+                    results.append(
+                        self.serialize_record(demo_record)
+                    )
+                else:
+                    # If there is no exact road match, leave this
+                    # point out. The caller can use the remaining
+                    # valid demo-live observations.
+                    print(
+                        f"No demo-live fallback found for "
+                        f"{road['road_name']}"
+                    )
 
         return results
 
