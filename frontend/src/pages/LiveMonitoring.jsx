@@ -755,19 +755,37 @@ export default function LiveMonitoring() {
         </div>
       </section>
 
+      {!loading && (
+        <div className="dashboard-scope-status live-monitoring-scope-status">
+          <span className="dashboard-scope-status-dot" />
+          <div>
+            <strong>
+              {monitoringScope?.area || monitoringScope?.state || "Selected area"}
+            </strong>
+            <span>
+              {mapPoints.length > 0
+                ? "Live traffic observations are available for this monitoring scope."
+                : "Location selected, but no live traffic observations are currently available for this scope."}
+            </span>
+          </div>
+        </div>
+      )}
+
       <section className="panel map-panel">
         <div className="panel-header">
           <div>
             <h3>Live Traffic Map</h3>
             <p>
-              Geographic view of current monitored
-              traffic conditions.
+              {mapPoints.length > 0
+                ? "Geographic view of current monitored traffic conditions."
+                : "Geographic view of the selected monitoring location."}
             </p>
           </div>
 
           <span className="map-count">
-            {mapPoints.length} mapped location
-            {mapPoints.length === 1 ? "" : "s"}
+            {mapPoints.length > 0
+              ? `${mapPoints.length} mapped location${mapPoints.length === 1 ? "" : "s"}`
+              : "No live observations"}
           </span>
         </div>
 
@@ -780,20 +798,32 @@ export default function LiveMonitoring() {
               </span>
             </div>
           ) : mapPoints.length > 0 ? (
-            <TrafficMap points={mapPoints} />
+            <TrafficMap
+              points={mapPoints}
+              center={[
+                Number(monitoringScope?.latitude) || 17.385,
+                Number(monitoringScope?.longitude) || 78.4867,
+              ]}
+            />
           ) : (
-            <div className="empty-state">
-              <div className="empty-state-icon">
-                📍
-              </div>
-
-              <h3>No mapped traffic locations</h3>
-
-              <p>
-                Traffic data is available, but no valid
-                geographic coordinates were returned.
-              </p>
-            </div>
+            <TrafficMap
+              points={[]}
+              center={[
+                Number(monitoringScope?.latitude) || 17.385,
+                Number(monitoringScope?.longitude) || 78.4867,
+              ]}
+              selectedLocation={{
+                name:
+                  monitoringScope?.area ||
+                  monitoringScope?.state ||
+                  "Selected monitoring location",
+                state: monitoringScope?.state,
+                latitude:
+                  Number(monitoringScope?.latitude),
+                longitude:
+                  Number(monitoringScope?.longitude),
+              }}
+            />
           )}
         </div>
       </section>
@@ -823,12 +853,13 @@ export default function LiveMonitoring() {
             </div>
 
             <h3>
-              No traffic observations available
+              No live traffic observations available
             </h3>
 
             <p>
-              There are currently no traffic records
-              available for monitoring.
+              {monitoringScope?.area || monitoringScope?.state
+                ? `The selected location, ${monitoringScope.area || monitoringScope.state}, is available for monitoring, but no live traffic observations are currently being returned.`
+                : "There are currently no traffic records available for monitoring."}
             </p>
           </div>
         ) : (
