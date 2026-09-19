@@ -500,20 +500,15 @@ export default function Dashboard() {
 
         let trafficResponse;
 
-        if (isOperational) {
-          try {
-            trafficResponse =
-              await getLiveTomTomTraffic(
-                monitoringScope.latitude,
-                monitoringScope.longitude,
-                monitoringScope.state,
-                monitoringScope.area
-              );
-          } catch {
-            trafficResponse =
-              await getLiveTraffic();
-          }
-        } else {
+        try {
+          trafficResponse =
+            await getLiveTomTomTraffic(
+              monitoringScope.latitude,
+              monitoringScope.longitude,
+              monitoringScope.state,
+              monitoringScope.area
+            );
+        } catch {
           trafficResponse =
             await getLiveTraffic();
         }
