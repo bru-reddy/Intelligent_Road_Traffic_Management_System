@@ -110,6 +110,8 @@ class TrafficMonitoringService:
         return {
             "id": record.id,
             "road_name": record.road_name,
+            "state": getattr(record, "state", None),
+            "area": getattr(record, "area", None),
             "latitude": record.latitude,
             "longitude": record.longitude,
             "vehicle_count": record.vehicle_count,
@@ -489,6 +491,8 @@ class TrafficMonitoringService:
         avg_speed_kmph: float,
         free_flow_speed_kmph: float,
         data_source: str = "manual",
+        state: Optional[str] = None,
+        area: Optional[str] = None,
     ) -> Dict[str, Any]:
         road_name = self._clean_road_name(road_name)
 
@@ -541,6 +545,16 @@ class TrafficMonitoringService:
 
         record = TrafficRecord(
             road_name=road_name,
+            state=(
+                str(state).strip()
+                if state
+                else None
+            ),
+            area=(
+                str(area).strip()
+                if area
+                else None
+            ),
             latitude=float(latitude),
             longitude=float(longitude),
             vehicle_count=vehicle_count,
@@ -646,6 +660,16 @@ class TrafficMonitoringService:
 
             record = TrafficRecord(
                 road_name=road_name,
+                state=(
+                    str(observation.get("state")).strip()
+                    if observation.get("state")
+                    else None
+                ),
+                area=(
+                    str(observation.get("area")).strip()
+                    if observation.get("area")
+                    else None
+                ),
                 latitude=latitude,
                 longitude=longitude,
                 vehicle_count=vehicle_count,
