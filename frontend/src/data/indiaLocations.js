@@ -115,6 +115,99 @@ export function getAreasForState(stateName, query = "") {
     .slice(0, 20);
 }
 
+export function searchIndiaLocations(query = "", stateName = "") {
+  const q = normalize(query);
+  const targetState = normalize(stateName);
+
+  const cityLocations = cityData
+    .filter((city) =>
+      !targetState ||
+      normalize(city.state) === targetState
+    )
+    .map((city) => ({
+      name: city.name,
+      label: `${city.name}, ${city.state}`,
+      state: city.state,
+      type: "City",
+    }));
+
+  const districtLocations = districtData
+    .filter((entry) =>
+      !targetState ||
+      normalize(entry.state) === targetState
+    )
+    .flatMap((entry) =>
+      (entry.districts || []).map((name) => ({
+        name,
+        label: `${name}, ${entry.state}`,
+        state: entry.state,
+        type: "District",
+      }))
+    );
+
+  const stateLocations = INDIA_STATES
+    .filter((state) =>
+      !targetState ||
+      normalize(state.name) === targetState
+    )
+    .map((state) => ({
+      name: state.name,
+      label: `${state.name}, India`,
+      state: state.name,
+      type: state.type,
+      latitude: state.latitude,
+      longitude: state.longitude,
+    }));
+
+  const capitalLocations = INDIA_STATES
+    .filter((state) =>
+      !targetState ||
+      normalize(state.name) === targetState
+    )
+    .map((state) => ({
+      name: state.capital,
+      label: `${state.capital}, ${state.name}`,
+      state: state.name,
+      type: "Capital",
+      latitude: state.latitude,
+      longitude: state.longitude,
+    }));
+
+  const all = [
+    ...capitalLocations,
+    ...stateLocations,
+    ...cityLocations,
+    ...districtLocations,
+  ];
+
+  const seen = new Set();
+
+  return all
+    .filter((item) => {
+      const key = `${normalize(item.name)}|${normalize(item.state)}`;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((item) => {
+      const label = normalize(
+        `${item.name} ${item.state}`
+      );
+
+      const starts = q && label.startsWith(q);
+      const includes = q && label.includes(q);
+
+      return {
+        item,
+        score: !q ? 0 : starts ? 0 : includes ? 10 : 100,
+      };
+    })
+    .filter((entry) => entry.score < 100)
+    .sort((a, b) => a.score - b.score)
+    .map((entry) => entry.item)
+    .slice(0, 30);
+}
+
 export function getDefaultMonitoringScope() {
   const state = getStateInfo("Telangana");
   return {
