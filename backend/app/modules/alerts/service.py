@@ -549,7 +549,10 @@ class AlertService:
                 Alert.state == state
             )
 
-        if area:
+        if area and str(area).strip().lower() not in {
+            "hyderabad",
+            "telangana",
+        }:
             query = query.filter(
                 Alert.area == area
             )
@@ -592,7 +595,10 @@ class AlertService:
                 Alert.state == state
             )
 
-        if area:
+        if area and str(area).strip().lower() not in {
+            "hyderabad",
+            "telangana",
+        }:
             query = query.filter(
                 Alert.area == area
             )
