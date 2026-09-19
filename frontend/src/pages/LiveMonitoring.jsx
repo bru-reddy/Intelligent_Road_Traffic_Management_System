@@ -5,11 +5,13 @@ import React, {
   useState,
 } from "react";
 import TrafficMap from "../components/TrafficMap";
+import MonitoringScope from "../components/MonitoringScope.jsx";
 import StatCard from "../components/StatCard";
 import {
   getLiveTraffic,
   getLiveTomTomTraffic,
 } from "../services/api";
+import { getStoredMonitoringScope as readMonitoringScope from "../data/indiaLocations";
 
 const REFRESH_INTERVAL = 60 * 1000;
 
@@ -329,6 +331,28 @@ export default function LiveMonitoring() {
 
   const role = normalizeRole(user?.role);
 
+  const [monitoringScope, setMonitoringScope] =
+    useState(readMonitoringScope);
+
+  useEffect(() => {
+    const handler = (event) => {
+      setMonitoringScope(
+        event.detail || readMonitoringScope()
+      );
+    };
+
+    window.addEventListener(
+      "irtms-monitoring-scope-changed",
+      handler
+    );
+
+    return () =>
+      window.removeEventListener(
+        "irtms-monitoring-scope-changed",
+        handler
+      );
+  }, []);
+
   const isOperationalRole = [
     "traffic_operator",
     "system_operator",
@@ -357,7 +381,12 @@ export default function LiveMonitoring() {
         if (isOperationalRole) {
           try {
             const response =
-              await getLiveTomTomTraffic();
+              await getLiveTomTomTraffic(
+                monitoringScope.latitude,
+                monitoringScope.longitude,
+                monitoringScope.state,
+                monitoringScope.area
+              );
 
             rawPoints = extractTrafficData(response);
           } catch (tomTomError) {
@@ -420,7 +449,7 @@ export default function LiveMonitoring() {
         setRefreshing(false);
       }
     },
-    [isOperationalRole]
+    [isOperationalRole, monitoringScope]
   );
 
   useEffect(() => {
@@ -529,6 +558,8 @@ export default function LiveMonitoring() {
           </button>
         </div>
       </section>
+
+      <MonitoringScope />
 
       {error && (
         <div className="alert alert-error">
