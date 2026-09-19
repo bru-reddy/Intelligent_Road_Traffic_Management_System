@@ -798,8 +798,14 @@ async def search_locations(
             )
         )
 
-    return results
+    if not results:
+        return await _photon_search(
+            query=query,
+            state=state,
+            limit=limit,
+        )
 
+    return results
 
 
 async def calculate_real_routes(
