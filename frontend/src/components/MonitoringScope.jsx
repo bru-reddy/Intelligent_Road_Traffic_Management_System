@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { searchRoutes } from "../services/api";
 import {
   INDIA_STATES,
@@ -15,6 +15,7 @@ export default function MonitoringScope({
   const initial = getStoredMonitoringScope();
   const [state, setState] = useState(initial.state);
   const [area, setArea] = useState(initial.area);
+  const initialResolutionAttempted = useRef(false);
 
   const localSuggestions = useMemo(
     () =>
@@ -93,6 +94,29 @@ export default function MonitoringScope({
 
     setArea(item?.name || item?.label || state);
   };
+
+  useEffect(() => {
+    if (
+      initialResolutionAttempted.current ||
+      initial?.coordinatesResolved !== false
+    ) {
+      return;
+    }
+
+    const selected = localSuggestions.find(
+      (item) =>
+        item?.name === initial.area &&
+        ["Capital", "City / Town"].includes(item?.type)
+    );
+
+    if (!selected) {
+      initialResolutionAttempted.current = true;
+      return;
+    }
+
+    initialResolutionAttempted.current = true;
+    chooseArea(selected);
+  }, [initial, localSuggestions]);
 
   const selectState = (nextState) => {
     const info = getStateInfo(nextState);
