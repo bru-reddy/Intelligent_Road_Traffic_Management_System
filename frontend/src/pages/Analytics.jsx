@@ -1159,7 +1159,7 @@ export default function Analytics() {
             hasCoordinates
           ) {
             try {
-              await api.get(
+              const liveResponse = await api.get(
                 "/traffic/live-tomtom",
                 {
                   params: {
@@ -1177,8 +1177,87 @@ export default function Analytics() {
                 }
               );
 
-              results =
+              // Use the live/simulation response immediately as an
+              // analytics source. This keeps Analytics populated even
+              // when the database write is delayed or unavailable.
+              const livePoints = extractArray(
+                liveResponse,
+                [
+                  "points",
+                  "traffic",
+                  "observations",
+                  "results",
+                ]
+              );
+
+              if (livePoints.length > 0) {
+                setHeatmap(
+                  livePoints.map(
+                    normalizeHeatmapPoint
+                  )
+                );
+
+                setRoadPerformance(
+                  livePoints.map(
+                    normalizeRoadPerformance
+                  )
+                );
+
+                setRoadUtilization(
+                  livePoints.map(
+                    normalizeUtilization
+                  )
+                );
+
+                setTrends(
+                  livePoints
+                    .map(
+                      (point, index) =>
+                        normalizeTrend(
+                          {
+                            ...point,
+                            timestamp:
+                              point?.recorded_at ||
+                              new Date().toISOString(),
+                          },
+                          index
+                        )
+                    )
+                    .filter(
+                      (item) =>
+                        item.timestamp
+                    )
+                );
+              }
+
+              // Refresh from the database as well. If persistence has
+              // completed, this replaces the immediate fallback data
+              // with the canonical analytics records.
+              const refreshedResults =
                 await requestAnalytics();
+
+              const refreshedHasData =
+                refreshedResults.some(
+                  (result) =>
+                    result.status === "fulfilled" &&
+                    extractArray(
+                      result.value,
+                      [
+                        "points",
+                        "heatmap",
+                        "roads",
+                        "road_performance",
+                        "trends",
+                        "utilization",
+                        "data",
+                        "results",
+                      ]
+                    ).length > 0
+                );
+
+              if (refreshedHasData) {
+                results = refreshedResults;
+              }
             } catch (liveError) {
               console.warn(
                 "Analytics live-data warmup failed:",
