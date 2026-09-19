@@ -10,8 +10,10 @@ import {
   getLiveTraffic,
   getLiveTomTomTraffic,
   getStoredUser,
+  getStoredMonitoringScope,
 } from "../services/api";
 import TrafficMap from "../components/TrafficMap";
+import MonitoringScope from "../components/MonitoringScope.jsx";
 
 const REFRESH_INTERVAL = 60 * 1000;
 
@@ -448,6 +450,28 @@ export default function Dashboard() {
 
   const role = normalizeRole(user?.role);
 
+  const [monitoringScope, setMonitoringScope] =
+    useState(getStoredMonitoringScope);
+
+  useEffect(() => {
+    const handler = (event) => {
+      setMonitoringScope(
+        event.detail || getStoredMonitoringScope()
+      );
+    };
+
+    window.addEventListener(
+      "irtms-monitoring-scope-changed",
+      handler
+    );
+
+    return () =>
+      window.removeEventListener(
+        "irtms-monitoring-scope-changed",
+        handler
+      );
+  }, []);
+
   const isOperational = [
     "traffic_operator",
     "system_operator",
@@ -479,7 +503,12 @@ export default function Dashboard() {
         if (isOperational) {
           try {
             trafficResponse =
-              await getLiveTomTomTraffic();
+              await getLiveTomTomTraffic(
+                monitoringScope.latitude,
+                monitoringScope.longitude,
+                monitoringScope.state,
+                monitoringScope.area
+              );
           } catch {
             trafficResponse =
               await getLiveTraffic();
@@ -561,7 +590,7 @@ export default function Dashboard() {
         setRefreshing(false);
       }
     },
-    [isOperational]
+    [isOperational, monitoringScope]
   );
 
   useEffect(() => {
@@ -703,6 +732,8 @@ export default function Dashboard() {
           </button>
         </div>
       </section>
+
+      <MonitoringScope />
 
       {error && (
         <div className="dashboard-error">
