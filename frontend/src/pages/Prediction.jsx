@@ -6,6 +6,7 @@ import {
   searchRoutes,
 } from "../services/api";
 import TrafficLoading from "../components/TrafficLoading";
+import MonitoringScope from "../components/MonitoringScope.jsx";
 import { getStoredMonitoringScope, searchIndiaLocations } from "../data/indiaLocations";
 
 const DAYS = [
@@ -1119,6 +1120,8 @@ export default function Prediction() {
 
   return (
     <div className="page-content prediction-page">
+      <MonitoringScope />
+
       <section className="page-title">
         <div>
           <h1>
