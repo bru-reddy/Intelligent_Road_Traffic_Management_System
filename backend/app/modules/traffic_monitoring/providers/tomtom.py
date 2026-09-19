@@ -52,15 +52,18 @@ class TomTomProvider:
         ).rstrip("/")
 
         try:
-            self.timeout = float(
-                getattr(
-                    settings,
-                    "TOMTOM_TIMEOUT_SECONDS",
-                    15,
-                )
+            self.timeout = min(
+                float(
+                    getattr(
+                        settings,
+                        "TOMTOM_TIMEOUT_SECONDS",
+                        15,
+                    )
+                ),
+                5.0,
             )
         except (TypeError, ValueError):
-            self.timeout = 15.0
+            self.timeout = 5.0
 
     def _check_api_key(self) -> None:
         if not self.api_key:
