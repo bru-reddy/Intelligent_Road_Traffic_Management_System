@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 
 import Sidebar from "./Sidebar";
 import TopNavbar from "./TopNavbar";
+import MobileNav from "./MobileNav";
 
 export default function Layout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -43,12 +44,15 @@ export default function Layout() {
       <main className="irtms-main-layout">
         <TopNavbar
           onMenuClick={() => setMobileSidebarOpen(true)}
+          showMobileMenu={false}
         />
 
         <section className="content">
           <Outlet />
         </section>
       </main>
+
+      <MobileNav />
     </div>
   );
 }
