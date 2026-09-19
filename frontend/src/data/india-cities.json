@@ -443,11 +443,11 @@
     "id": "45",
     "name": "Hubli-Dharwad",
     "state": "Karnataka",
-    "district": null,
-    "latitude": null,
-    "longitude": null,
+    "district": "Dharwad",
+    "latitude": 15.3647,
+    "longitude": 75.1240,
     "population": null,
-    "source": "Existing IRTMS India city catalog"
+    "source": "IRTMS India city catalog"
   },
   {
     "id": "46",
