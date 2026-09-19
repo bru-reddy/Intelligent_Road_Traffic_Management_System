@@ -149,6 +149,210 @@ async def _tomtom_get(
     return data
 
 
+OSRM_ROUTING_URL = (
+    "https://router.project-osrm.org/route/v1/driving"
+)
+
+
+async def _calculate_osrm_fallback(
+    source_latitude: float,
+    source_longitude: float,
+    destination_latitude: float,
+    destination_longitude: float,
+    max_alternatives: int,
+) -> list[RouteOption]:
+    """
+    Fallback routing provider used when TomTom rejects the
+    configured API key or its Routing API access.
+
+    OSRM does not provide TomTom traffic data, so fallback
+    routes deliberately report traffic_level as "unknown"
+    rather than inventing traffic conditions.
+    """
+    coordinates = (
+        f"{source_longitude},{source_latitude};"
+        f"{destination_longitude},{destination_latitude}"
+    )
+
+    params = {
+        "overview": "full",
+        "geometries": "geojson",
+        "steps": "false",
+        "alternatives": "true",
+    }
+
+    try:
+        timeout = httpx.Timeout(
+            connect=10.0,
+            read=25.0,
+            write=10.0,
+            pool=10.0,
+        )
+
+        async with httpx.AsyncClient(
+            timeout=timeout,
+            follow_redirects=True,
+            trust_env=False,
+        ) as client:
+            response = await client.get(
+                f"{OSRM_ROUTING_URL}/{coordinates}",
+                params=params,
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": "IRTMS/1.0",
+                },
+            )
+
+        response.raise_for_status()
+        data = response.json()
+
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "TomTom routing is unavailable and the "
+                "fallback routing service returned HTTP "
+                f"{exc.response.status_code}."
+            ),
+        ) from exc
+
+    except (
+        httpx.ConnectTimeout,
+        httpx.ReadTimeout,
+    ) as exc:
+        raise HTTPException(
+            status_code=504,
+            detail=(
+                "TomTom routing is unavailable and the "
+                "fallback routing service timed out."
+            ),
+        ) from exc
+
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "TomTom routing is unavailable and the "
+                "fallback routing service could not be reached."
+            ),
+        ) from exc
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "TomTom routing is unavailable and the "
+                "fallback routing service returned invalid JSON."
+            ),
+        ) from exc
+
+    if not isinstance(data, dict):
+        raise HTTPException(
+            status_code=502,
+            detail="Fallback routing returned an invalid response.",
+        )
+
+    if data.get("code") != "Ok":
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "No route could be calculated between the "
+                "selected locations."
+            ),
+        )
+
+    raw_routes = data.get("routes", [])
+
+    if not isinstance(raw_routes, list):
+        raw_routes = []
+
+    options: list[RouteOption] = []
+
+    for index, route in enumerate(raw_routes):
+        if not isinstance(route, dict):
+            continue
+
+        distance_meters = float(
+            route.get("distance", 0) or 0
+        )
+        duration_seconds = float(
+            route.get("duration", 0) or 0
+        )
+
+        if distance_meters <= 0 or duration_seconds <= 0:
+            continue
+
+        geometry = []
+        geometry_data = route.get("geometry") or {}
+
+        if (
+            isinstance(geometry_data, dict)
+            and geometry_data.get("type") == "LineString"
+        ):
+            for point in geometry_data.get("coordinates", []):
+                if not isinstance(point, list) or len(point) < 2:
+                    continue
+
+                try:
+                    longitude = float(point[0])
+                    latitude = float(point[1])
+                except (TypeError, ValueError):
+                    continue
+
+                if (
+                    -90 <= latitude <= 90
+                    and -180 <= longitude <= 180
+                ):
+                    geometry.append([latitude, longitude])
+
+        distance_km = distance_meters / 1000
+        duration_minutes = duration_seconds / 60
+        average_speed = (
+            distance_km / (duration_minutes / 60)
+            if duration_minutes > 0
+            else 0
+        )
+
+        options.append(
+            RouteOption(
+                name=(
+                    "Best Route"
+                    if index == 0
+                    else f"Alternative Route {index}"
+                ),
+                distance_km=round(distance_km, 2),
+                estimated_time_minutes=round(
+                    duration_minutes,
+                    1,
+                ),
+                traffic_delay_minutes=0.0,
+                base_time_minutes=round(
+                    duration_minutes,
+                    1,
+                ),
+                traffic_level="unknown",
+                traffic_delay_seconds=0,
+                geometry=geometry,
+            )
+        )
+
+    options.sort(
+        key=lambda route: (
+            route.estimated_time_minutes,
+            route.distance_km,
+        )
+    )
+
+    for index, route in enumerate(options):
+        route.name = (
+            "Best Route"
+            if index == 0
+            else f"Alternative Route {index}"
+        )
+
+    return options[: max_alternatives + 1]
+
+
 def _calculate_traffic_level(
     travel_time_seconds: int,
     traffic_delay_seconds: int,
@@ -507,11 +711,34 @@ async def calculate_real_routes(
         "language": "en-US",
     }
 
-    data = await _tomtom_get(
-        f"{TOMTOM_ROUTING_URL}/"
-        f"{locations}/json",
-        params,
-    )
+    try:
+        data = await _tomtom_get(
+            f"{TOMTOM_ROUTING_URL}/"
+            f"{locations}/json",
+            params,
+        )
+    except HTTPException as exc:
+        # TomTom returns 401/403 when the configured key is invalid
+        # or does not have Routing API access. Keep Route Planner
+        # functional with a non-traffic routing fallback instead of
+        # exposing a provider authentication error to the user.
+        detail = str(exc.detail).lower()
+
+        if exc.status_code == 502 and (
+            "http 401" in detail
+            or "http 403" in detail
+            or "authentication" in detail
+            or "api key" in detail
+        ):
+            return await _calculate_osrm_fallback(
+                source_latitude=source_latitude,
+                source_longitude=source_longitude,
+                destination_latitude=destination_latitude,
+                destination_longitude=destination_longitude,
+                max_alternatives=max_alternatives,
+            )
+
+        raise
 
     routes = data.get("routes", [])
 
