@@ -376,6 +376,8 @@ def seed_historical(db) -> int:
             db.add(
                 TrafficRecord(
                     road_name="Hyderabad City Aggregate",
+                    state="Telangana",
+                    area="Hyderabad",
                     latitude=17.3850,
                     longitude=78.4867,
                     vehicle_count=vehicle_proxy(
@@ -437,6 +439,8 @@ def seed_live_demo(db) -> int:
                 road_name=point[
                     "road_name"
                 ],
+                state="Telangana",
+                area="Hyderabad",
                 latitude=point[
                     "latitude"
                 ],
@@ -492,6 +496,7 @@ def seed_alerts(db) -> int:
         db.add(
             Alert(
                 alert_type="traffic_congestion",
+                state="Telangana",
                 area=item["area"],
                 road_name=item["road_name"],
                 congestion_level=item[
