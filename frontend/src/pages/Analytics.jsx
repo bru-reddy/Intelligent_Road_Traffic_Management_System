@@ -6,6 +6,7 @@ import React, {
 } from "react";
 import { api } from "../services/api";
 import TrafficLoading from "../components/TrafficLoading";
+import { getStoredMonitoringScope } from "../data/indiaLocations";
 
 const REFRESH_INTERVAL = 60 * 1000;
 
@@ -1012,6 +1013,28 @@ function UtilizationGraph({
 }
 
 export default function Analytics() {
+  const [monitoringScope, setMonitoringScope] =
+    useState(getStoredMonitoringScope);
+
+  useEffect(() => {
+    const handler = (event) => {
+      setMonitoringScope(
+        event.detail || getStoredMonitoringScope()
+      );
+    };
+
+    window.addEventListener(
+      "irtms-monitoring-scope-changed",
+      handler
+    );
+
+    return () =>
+      window.removeEventListener(
+        "irtms-monitoring-scope-changed",
+        handler
+      );
+  }, []);
+
   const [heatmap, setHeatmap] =
     useState([]);
 
@@ -1061,19 +1084,28 @@ export default function Analytics() {
 
           setError("");
 
+          const scopeParams = {
+            state: monitoringScope.state,
+            area: monitoringScope.area,
+          };
+
           const results =
             await Promise.allSettled([
               api.get(
-                "/analytics/heatmap"
+                "/analytics/heatmap",
+                { params: scopeParams }
               ),
               api.get(
-                "/analytics/road-performance"
+                "/analytics/road-performance",
+                { params: scopeParams }
               ),
               api.get(
-                "/analytics/trends"
+                "/analytics/trends",
+                { params: scopeParams }
               ),
               api.get(
-                "/traffic/road-utilization"
+                "/traffic/road-utilization",
+                { params: scopeParams }
               ),
             ]);
 
@@ -1269,7 +1301,7 @@ export default function Analytics() {
           setRefreshing(false);
         }
       },
-      []
+      [monitoringScope]
     );
 
   useEffect(() => {
