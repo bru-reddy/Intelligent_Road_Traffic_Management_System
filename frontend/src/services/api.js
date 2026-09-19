@@ -440,7 +440,9 @@ export async function getLiveTraffic(options = {}) {
 
 export async function getLiveTomTomTraffic(
   latitude,
-  longitude
+  longitude,
+  state,
+  area
 ) {
   try {
     const lat =
@@ -464,14 +466,22 @@ export async function getLiveTomTomTraffic(
       );
     }
 
+    const params = {
+      latitude: lat,
+      longitude: lon,
+    };
+
+    if (state) {
+      params.state = state;
+    }
+
+    if (area) {
+      params.area = area;
+    }
+
     const response = await client.get(
       "/traffic/live-tomtom",
-      {
-        params: {
-          latitude: lat,
-          longitude: lon,
-        },
-      }
+      { params }
     );
 
     return extractData(response);
@@ -833,13 +843,38 @@ export async function searchRoutes(query) {
         ? query
         : query?.q || "";
 
+    const state =
+      typeof query === "object"
+        ? query?.state
+        : undefined;
+
+    const latitude =
+      typeof query === "object"
+        ? query?.latitude
+        : undefined;
+
+    const longitude =
+      typeof query === "object"
+        ? query?.longitude
+        : undefined;
+
+    const params = { q: value };
+
+    if (state) {
+      params.state = state;
+    }
+
+    if (latitude !== undefined) {
+      params.latitude = latitude;
+    }
+
+    if (longitude !== undefined) {
+      params.longitude = longitude;
+    }
+
     const response = await client.get(
       "/routes/search",
-      {
-        params: {
-          q: value,
-        },
-      }
+      { params }
     );
 
     return extractData(response);
