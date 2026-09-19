@@ -42,12 +42,18 @@ async def search_route_locations(
         ge=-180,
         le=180,
     ),
+    state: str | None = Query(
+        default=None,
+        min_length=2,
+        max_length=100,
+    ),
 ):
     results = await search_locations(
         query=q,
         latitude=latitude,
         longitude=longitude,
         limit=8,
+        state=state,
     )
 
     return LocationSearchResponse(
