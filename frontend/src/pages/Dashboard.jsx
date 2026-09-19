@@ -649,25 +649,25 @@ export default function Dashboard() {
 
     const low = points.filter(
       (point) =>
-        point.status.toLowerCase() === "low"
+        String(point?.status || "").toLowerCase() === "low"
     ).length;
 
     const medium = points.filter(
       (point) =>
-        point.status.toLowerCase() ===
+        String(point?.status || "").toLowerCase() ===
         "medium"
     ).length;
 
     const high = points.filter(
       (point) =>
-        point.status.toLowerCase() === "high"
+        String(point?.status || "").toLowerCase() === "high"
     ).length;
 
     const critical = points.filter(
       (point) =>
-        point.status.toLowerCase() ===
+        String(point?.status || "").toLowerCase() ===
           "critical" ||
-        point.status.toLowerCase() ===
+        String(point?.status || "").toLowerCase() ===
           "severe"
     ).length;
 
