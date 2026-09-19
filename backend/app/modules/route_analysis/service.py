@@ -21,6 +21,148 @@ TOMTOM_ROUTING_URL = (
 )
 
 
+PHOTON_SEARCH_URL = "https://photon.komoot.io/api/"
+
+
+async def _photon_search(
+    query: str,
+    state: str | None = None,
+    limit: int = 8,
+) -> list[LocationResult]:
+    search_query = query.strip()
+
+    if state and state.strip():
+        search_query = (
+            f"{search_query}, {state.strip()}, India"
+        )
+
+    params = {
+        "q": search_query,
+        "limit": max(1, min(int(limit), 10)),
+        "lang": "en",
+        "countrycode": "IN",
+    }
+
+    try:
+        timeout = httpx.Timeout(
+            connect=8.0,
+            read=15.0,
+            write=8.0,
+            pool=8.0,
+        )
+
+        async with httpx.AsyncClient(
+            timeout=timeout,
+            follow_redirects=True,
+            trust_env=False,
+        ) as client:
+            response = await client.get(
+                PHOTON_SEARCH_URL,
+                params=params,
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": (
+                        "IRTMS/1.0 "
+                        "(traffic-management-demo)"
+                    ),
+                },
+            )
+
+        response.raise_for_status()
+        data = response.json()
+
+    except (
+        httpx.RequestError,
+        httpx.HTTPStatusError,
+        ValueError,
+    ):
+        return []
+
+    features = (
+        data.get("features", [])
+        if isinstance(data, dict)
+        else []
+    )
+
+    results: list[LocationResult] = []
+
+    for index, feature in enumerate(features):
+        if not isinstance(feature, dict):
+            continue
+
+        properties = feature.get("properties") or {}
+        geometry = feature.get("geometry") or {}
+        coordinates = geometry.get("coordinates")
+
+        if (
+            not isinstance(coordinates, list)
+            or len(coordinates) < 2
+        ):
+            continue
+
+        try:
+            longitude = float(coordinates[0])
+            latitude = float(coordinates[1])
+        except (TypeError, ValueError):
+            continue
+
+        if not (
+            -90 <= latitude <= 90
+            and -180 <= longitude <= 180
+        ):
+            continue
+
+        result_state = str(
+            properties.get("state") or ""
+        ).strip()
+
+        if state and result_state:
+            requested = state.strip().lower()
+            if requested not in result_state.lower():
+                continue
+
+        name = (
+            properties.get("name")
+            or properties.get("street")
+            or properties.get("city")
+            or properties.get("district")
+            or query
+        )
+
+        address_parts = [
+            properties.get("street"),
+            properties.get("district"),
+            properties.get("city"),
+            result_state,
+            properties.get("country"),
+        ]
+
+        address = ", ".join(
+            str(value).strip()
+            for value in address_parts
+            if value
+        )
+
+        results.append(
+            LocationResult(
+                id=str(
+                    properties.get("osm_id")
+                    or f"photon-{index}-{latitude}-{longitude}"
+                ),
+                name=str(name),
+                address=address or str(name),
+                latitude=latitude,
+                longitude=longitude,
+                type=(
+                    properties.get("osm_value")
+                    or properties.get("osm_key")
+                ),
+            )
+        )
+
+    return results
+
+
 def _get_tomtom_api_key() -> str:
     api_key = getattr(
         settings,
@@ -503,37 +645,79 @@ async def search_locations(
     latitude: float | None = None,
     longitude: float | None = None,
     limit: int = 8,
+    state: str | None = None,
 ) -> list[LocationResult]:
     query = query.strip()
 
     if not query:
         return []
 
-    api_key = _get_tomtom_api_key()
-
     limit = max(
         1,
         min(int(limit), 10),
     )
 
-    params: dict[str, Any] = {
-        "key": api_key,
-        "limit": limit,
-        "countrySet": "IN",
-        "typeahead": "true",
-        "language": "en-US",
-        "ofs": 0,
-    }
+    # TomTom remains the primary provider. If its key is invalid,
+    # unavailable, or the Search API is not enabled for the key,
+    # fall back to Photon so location autocomplete remains useful
+    # across India.
+    try:
+        api_key = _get_tomtom_api_key()
 
-    if latitude is not None and longitude is not None:
-        params["lat"] = latitude
-        params["lon"] = longitude
+        params: dict[str, Any] = {
+            "key": api_key,
+            "limit": limit,
+            "countrySet": "IN",
+            "typeahead": "true",
+            "language": "en-US",
+            "ofs": 0,
+        }
 
-    data = await _tomtom_get(
-        f"{TOMTOM_SEARCH_URL}/"
-        f"{query}.json",
-        params,
-    )
+        if latitude is not None and longitude is not None:
+            params["lat"] = latitude
+            params["lon"] = longitude
+
+        tomtom_query = query
+        if state and state.strip():
+            tomtom_query = (
+                f"{query}, {state.strip()}, India"
+            )
+
+        try:
+            data = await _tomtom_get(
+                f"{TOMTOM_SEARCH_URL}/"
+                f"{tomtom_query}.json",
+                params,
+            )
+        except HTTPException as exc:
+            detail = str(exc.detail).lower()
+
+            if not (
+                exc.status_code == 502
+                and (
+                    "http 401" in detail
+                    or "http 403" in detail
+                    or "authentication" in detail
+                    or "api key" in detail
+                )
+            ):
+                raise
+
+            return await _photon_search(
+                query=query,
+                state=state,
+                limit=limit,
+            )
+
+    except HTTPException as exc:
+        if exc.status_code != 500:
+            raise
+
+        return await _photon_search(
+            query=query,
+            state=state,
+            limit=limit,
+        )
 
     results: list[LocationResult] = []
 
@@ -555,12 +739,8 @@ async def search_locations(
             continue
 
         try:
-            latitude_value = float(
-                latitude_value
-            )
-            longitude_value = float(
-                longitude_value
-            )
+            latitude_value = float(latitude_value)
+            longitude_value = float(longitude_value)
         except (TypeError, ValueError):
             continue
 
@@ -583,9 +763,7 @@ async def search_locations(
             address.get("streetNumber"),
             address.get("streetName"),
             address.get("municipality"),
-            address.get(
-                "countrySubdivision"
-            ),
+            address.get("countrySubdivision"),
         ):
             if value:
                 value = str(value)
@@ -597,9 +775,7 @@ async def search_locations(
             ", ".join(address_parts)
             or address.get("freeformAddress")
             or address.get("municipality")
-            or address.get(
-                "countrySubdivision"
-            )
+            or address.get("countrySubdivision")
             or ""
         )
 
@@ -615,9 +791,7 @@ async def search_locations(
                     )
                 ),
                 name=str(name),
-                address=str(
-                    formatted_address
-                ),
+                address=str(formatted_address),
                 latitude=latitude_value,
                 longitude=longitude_value,
                 type=item.get("type"),
@@ -625,6 +799,7 @@ async def search_locations(
         )
 
     return results
+
 
 
 async def calculate_real_routes(
