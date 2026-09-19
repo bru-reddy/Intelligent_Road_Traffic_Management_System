@@ -10,6 +10,7 @@ import {
   getAlerts,
   resolveAlert,
 } from "../services/api";
+import MonitoringScope from "../components/MonitoringScope.jsx";
 import { getStoredMonitoringScope } from "../data/indiaLocations";
 
 const OPERATIONAL_ROLES = [
@@ -668,6 +669,8 @@ export default function Alerts() {
 
   return (
     <div className="page-content alerts-page">
+      <MonitoringScope />
+
       <section className="page-title">
         <div>
           <h1>
