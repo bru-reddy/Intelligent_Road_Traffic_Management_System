@@ -332,6 +332,7 @@ export default function TrafficMap({
   center = [17.385, 78.4867],
   zoom = 11,
   title = "Live Traffic Map",
+  selectedLocation = null,
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -537,9 +538,64 @@ export default function TrafficMap({
           });
         }
       } else {
-        map.setView(center, zoom, {
-          animate: false,
-        });
+        const selectedCoordinates = getCoordinates(selectedLocation);
+
+        map.setView(
+          selectedCoordinates || center,
+          selectedCoordinates ? Math.max(zoom, 12) : zoom,
+          { animate: false }
+        );
+
+        if (selectedCoordinates) {
+          const selectedMarker = L.marker(
+            selectedCoordinates,
+            {
+              icon: L.divIcon({
+                className: "traffic-map-selected-location-wrapper",
+                html: '<div class="traffic-map-selected-location"></div>',
+                iconSize: [22, 22],
+                iconAnchor: [11, 11],
+              }),
+              title:
+                selectedLocation?.name ||
+                "Selected monitoring location",
+            }
+          ).addTo(map);
+
+          selectedMarker.bindPopup(
+            '<div class="traffic-map-popup">' +
+              '<div class="traffic-map-popup-title">' +
+                escapePopupValue(
+                  selectedLocation?.name ||
+                  "Selected monitoring location"
+                ) +
+              '</div>' +
+              '<div class="traffic-map-popup-row">' +
+                '<span>Monitoring scope</span>' +
+                '<strong>Selected location</strong>' +
+              '</div>' +
+              (selectedLocation?.state
+                ? '<div class="traffic-map-popup-row">' +
+                    '<span>State / UT</span>' +
+                    '<strong>' +
+                      escapePopupValue(selectedLocation.state) +
+                    '</strong>' +
+                  '</div>'
+                : '') +
+              '<div class="traffic-map-popup-source">' +
+                'Live traffic observations are not currently available here.' +
+              '</div>' +
+            '</div>',
+            {
+              maxWidth: 320,
+              minWidth: 220,
+              closeButton: true,
+              autoPan: true,
+            }
+          );
+
+          markersRef.current.push(selectedMarker);
+        }
       }
 
       requestAnimationFrame(() => {
@@ -554,7 +610,7 @@ export default function TrafficMap({
     return () => {
       cancelled = true;
     };
-  }, [points, center, zoom]);
+  }, [points, center, zoom, selectedLocation]);
 
   return (
     <div className="traffic-map-card">
