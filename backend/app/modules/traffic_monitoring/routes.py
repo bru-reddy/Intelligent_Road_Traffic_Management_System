@@ -29,6 +29,8 @@ class TrafficIngestRequest(BaseModel):
     avg_speed_kmph: float = Field(..., ge=0)
     free_flow_speed_kmph: float = Field(..., ge=0)
     data_source: str = Field(default="manual", min_length=1, max_length=100)
+    state: str | None = Field(default=None, max_length=100)
+    area: str | None = Field(default=None, max_length=255)
 
     @field_validator("road_name", "data_source")
     @classmethod
@@ -134,6 +136,8 @@ def ingest_traffic(
             avg_speed_kmph=payload.avg_speed_kmph,
             free_flow_speed_kmph=payload.free_flow_speed_kmph,
             data_source=payload.data_source,
+            state=payload.state,
+            area=payload.area,
         )
 
     except ValueError as exc:
@@ -155,4 +159,7 @@ def get_road_utilization(
 
     service = TrafficMonitoringService(db)
 
-    return service.get_road_utilization()
+    return service.get_road_utilization(
+        state=state,
+        area=area,
+    )
