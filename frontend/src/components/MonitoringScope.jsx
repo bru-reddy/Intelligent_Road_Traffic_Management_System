@@ -241,6 +241,10 @@ export default function MonitoringScope({
           )}
         </label>
       </div>
+
+      <small className="scope-attribution">
+        Location search powered by OpenStreetMap / Photon.
+      </small>
     </div>
   );
 }
