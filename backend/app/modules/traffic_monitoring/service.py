@@ -777,7 +777,27 @@ out center tags;
 
             # Keep the fallback visible to the rest of IRTMS (analytics,
             # road utilization and stored-traffic views) without creating
-            # a new row every refresh.
+            # a new row every refresh. Remove obsolete simulated road points
+            # for this scope so an old city layout cannot remain on the map
+            # after the OSM road set changes.
+            current_road_names = {
+                str(observation.get("road_name") or "").strip()
+                for observation in simulated
+            }
+
+            stale_query = (
+                self.db.query(TrafficRecord)
+                .filter(
+                    TrafficRecord.data_source == "simulation-fallback",
+                    TrafficRecord.state == str(state or "India").strip(),
+                    TrafficRecord.area == str(area or "Selected monitoring area").strip(),
+                )
+            )
+
+            for stale_record in stale_query.all():
+                if stale_record.road_name not in current_road_names:
+                    self.db.delete(stale_record)
+
             for observation in simulated:
                 existing = (
                     self.db.query(TrafficRecord)
