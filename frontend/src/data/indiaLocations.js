@@ -107,7 +107,11 @@ export function getAreasForState(stateName, query = "") {
       name: city.name,
       label: `${city.name}, ${stateName}`,
       state: stateName,
+      district: city.district || "",
       type: "City",
+      latitude: Number.isFinite(Number(city.latitude)) ? Number(city.latitude) : undefined,
+      longitude: Number.isFinite(Number(city.longitude)) ? Number(city.longitude) : undefined,
+      source: city.source || "India location catalog",
     }));
 
   const capital = getStateInfo(stateName);
@@ -161,7 +165,11 @@ export function searchIndiaLocations(query = "", stateName = "") {
       name: city.name,
       label: `${city.name}, ${city.state}`,
       state: city.state,
+      district: city.district || "",
       type: "City",
+      latitude: Number.isFinite(Number(city.latitude)) ? Number(city.latitude) : undefined,
+      longitude: Number.isFinite(Number(city.longitude)) ? Number(city.longitude) : undefined,
+      source: city.source || "India location catalog",
     }));
 
   const districtLocations = districtData
