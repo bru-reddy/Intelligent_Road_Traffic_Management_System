@@ -401,13 +401,13 @@ out center tags;
         # multiple public Overpass servers. A second endpoint is used only
         # when the first one fails.
         endpoints = [
-            "https://overpass-api.de/api/interpreter",
-            "https://overpass.kumi.systems/api/interpreter",
+            ("https://overpass-api.de/api/interpreter", 4),
+            ("https://overpass.kumi.systems/api/interpreter", 3),
         ]
 
         candidates: List[Dict[str, Any]] = []
 
-        for endpoint in endpoints:
+        for endpoint, timeout_seconds in endpoints:
             try:
                 response = requests.post(
                     endpoint,
@@ -416,7 +416,7 @@ out center tags;
                         "User-Agent": "IRTMS/1.0 (traffic monitoring demo)",
                         "Accept": "application/json",
                     },
-                    timeout=6,
+                    timeout=timeout_seconds,
                 )
                 response.raise_for_status()
                 payload = response.json()
