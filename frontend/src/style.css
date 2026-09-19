@@ -13506,3 +13506,207 @@ body,
   .navbar-user-avatar { width: 36px !important; height: 36px !important; }
   .main-content > .content { width: 100%; min-width: 0; }
 }
+
+
+/* ============================================================
+   IRTMS MOBILE NAVIGATION + RESPONSIVE SHELL
+   ============================================================ */
+
+/* The sidebar is fixed, so the page content must reserve its width
+   on desktop and release it completely on mobile. */
+.irtms-app-shell {
+  width: 100%;
+  min-width: 0;
+}
+
+.irtms-main-layout {
+  margin-left: var(--irtms-sidebar-width);
+  width: calc(100% - var(--irtms-sidebar-width));
+  min-width: 0;
+  min-height: 100vh;
+}
+
+@media (max-width: 800px) {
+  .irtms-main-layout {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .irtms-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: min(300px, 86vw) !important;
+    height: 100dvh !important;
+    max-width: 300px !important;
+    min-width: 0 !important;
+    z-index: 2000 !important;
+    transform: translate3d(-105%, 0, 0) !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transition:
+      transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s linear 240ms !important;
+  }
+
+  .irtms-sidebar.irtms-sidebar-mobile-open {
+    transform: translate3d(0, 0, 0) !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transition:
+      transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s linear 0s !important;
+  }
+
+  .irtms-sidebar-inner {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .irtms-sidebar .irtms-mobile-sidebar-close {
+    display: grid !important;
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    z-index: 20 !important;
+  }
+
+  .irtms-sidebar-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1990 !important;
+    display: block !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: rgba(1, 12, 25, 0.66) !important;
+    cursor: default !important;
+  }
+
+  .top-navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1500;
+    width: 100%;
+    min-width: 0;
+    min-height: 64px;
+    padding: 10px 12px !important;
+    gap: 8px;
+  }
+
+  .navbar-left {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .mobile-menu-button {
+    display: grid !important;
+    place-items: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    flex: 0 0 40px !important;
+    margin: 0 8px 0 0 !important;
+    padding: 0 !important;
+    color: #0755a1 !important;
+    background: #ffffff !important;
+    border: 1px solid #b8d4eb !important;
+    border-radius: 9px !important;
+    box-shadow: 0 3px 10px rgba(7, 40, 70, 0.18) !important;
+    font-size: 20px !important;
+    line-height: 1 !important;
+  }
+
+  .navbar-page-info {
+    min-width: 0 !important;
+    max-width: calc(100vw - 116px) !important;
+    overflow: hidden;
+  }
+
+  .navbar-system-name {
+    display: block !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 12px !important;
+  }
+
+  .navbar-current-page {
+    display: block !important;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .navbar-right {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+  }
+
+  .navbar-user {
+    min-width: 36px !important;
+    max-width: 40px !important;
+    gap: 0 !important;
+  }
+
+  .navbar-user-details {
+    display: none !important;
+  }
+
+  .navbar-user-avatar {
+    width: 36px !important;
+    height: 36px !important;
+    flex: 0 0 36px !important;
+  }
+
+  .main-content,
+  .content,
+  .irtms-main-layout > .content {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .main-content {
+    padding: 18px 12px 42px !important;
+  }
+
+  .content {
+    overflow-x: hidden;
+  }
+
+  .irtms-main-layout > .content {
+    padding: 18px 12px 42px !important;
+  }
+
+  .monitoring-scope {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    padding: 14px !important;
+  }
+
+  .monitoring-scope-controls {
+    grid-template-columns: 1fr !important;
+  }
+
+  .monitoring-scope select {
+    min-height: 44px;
+    font-size: 13px;
+  }
+}
+
+@media (min-width: 801px) {
+  .mobile-menu-button,
+  .irtms-mobile-sidebar-close,
+  .irtms-sidebar-overlay {
+    display: none !important;
+  }
+}
