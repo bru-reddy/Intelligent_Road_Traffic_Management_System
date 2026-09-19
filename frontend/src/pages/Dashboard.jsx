@@ -12,6 +12,7 @@ import {
   getStoredUser,
 } from "../services/api";
 import { getStoredMonitoringScope } from "../data/indiaLocations";
+import { buildSimulationPoints } from "../services/trafficFallback";
 import TrafficMap from "../components/TrafficMap";
 import MonitoringScope from "../components/MonitoringScope.jsx";
 
@@ -324,9 +325,17 @@ function normalizePoint(item, index) {
       item?.updated_at ??
       null,
     dataSource:
+      item?.data_source_label ??
       item?.data_source ??
       item?.dataSource ??
       "Traffic monitoring",
+    isSimulated: Boolean(
+      item?.is_simulated ||
+      item?.data_source === "simulation-fallback"
+    ),
+    vehicleCountEstimated: Boolean(
+      item?.vehicle_count_estimated
+    ),
   };
 }
 
@@ -542,7 +551,7 @@ export default function Dashboard() {
             ? normalizedTraffic
             : isDemoScope
               ? FALLBACK_POINTS
-              : []
+              : buildSimulationPoints(monitoringScope)
         );
 
         try {
@@ -597,7 +606,7 @@ export default function Dashboard() {
         setPoints(
           isDemoScope
             ? FALLBACK_POINTS
-            : []
+            : buildSimulationPoints(monitoringScope)
         );
       } finally {
         setLoading(false);
@@ -673,7 +682,7 @@ export default function Dashboard() {
     };
   }, [points]);
 
-  const activeAlerts = alerts.filter(
+  const hasSimulatedPoints = points.some((point) => point.isSimulated);\n\n  const activeAlerts = alerts.filter(
     (alert) =>
       String(
         alert?.status || "active"
@@ -717,9 +726,11 @@ export default function Dashboard() {
         <div className="dashboard-header-actions">
           <span className="tomtom-status">
             <span className="status-live-dot" />
-            {isOperational
-              ? "TomTom Live"
-              : "Traffic Live"}
+            {hasSimulatedPoints
+              ? "Simulation fallback"
+              : isOperational
+                ? "TomTom Live"
+                : "Traffic Live"}
           </span>
 
           <button
@@ -839,9 +850,11 @@ export default function Dashboard() {
                 <h2>Live Traffic Map</h2>
 
                 <p>
-                  {mappedPoints.length > 0
-                    ? "Real-time monitored road conditions and traffic flow"
-                    : "Selected monitoring location; live observations are currently unavailable"}
+                  {hasSimulatedPoints
+                    ? "Synthetic traffic observations for the selected monitoring scope"
+                    : mappedPoints.length > 0
+                      ? "Real-time monitored road conditions and traffic flow"
+                      : "Selected monitoring location; live observations are currently unavailable"}
                 </p>
               </div>
             </div>
