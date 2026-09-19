@@ -25,6 +25,12 @@ class Alert(Base):
         nullable=True,
     )
 
+    state = Column(
+        String(100),
+        nullable=True,
+        index=True,
+    )
+
     road_name = Column(
         String(255),
         nullable=False,
