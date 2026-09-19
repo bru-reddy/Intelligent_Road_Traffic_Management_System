@@ -6,6 +6,7 @@ import React, {
 } from "react";
 import { api } from "../services/api";
 import TrafficLoading from "../components/TrafficLoading";
+import MonitoringScope from "../components/MonitoringScope.jsx";
 import { getStoredMonitoringScope } from "../data/indiaLocations";
 
 const REFRESH_INTERVAL = 60 * 1000;
@@ -1440,6 +1441,8 @@ export default function Analytics() {
 
   return (
     <div className="page-content analytics-page">
+      <MonitoringScope />
+
       <section className="page-title">
         <div>
           <span className="page-eyebrow">
