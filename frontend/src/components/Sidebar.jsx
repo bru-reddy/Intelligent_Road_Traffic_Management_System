@@ -382,6 +382,8 @@ function getInitials(user) {
 export default function Sidebar({
   collapsed = false,
   onToggle,
+  mobileOpen = false,
+  onMobileClose,
 }) {
   const navigate = useNavigate();
 
@@ -522,13 +524,17 @@ export default function Sidebar({
 
   return (
     <aside
-      className={`irtms-sidebar ${
-        collapsed
-          ? "irtms-sidebar-collapsed"
-          : ""
-      }`}
+      className={`irtms-sidebar ${collapsed ? "irtms-sidebar-collapsed" : ""} ${mobileOpen ? "irtms-sidebar-mobile-open" : ""}`}
     >
       <div className="irtms-sidebar-inner">
+        <button
+          type="button"
+          className="irtms-mobile-sidebar-close"
+          onClick={onMobileClose}
+          aria-label="Close navigation"
+        >
+          <Icon name="chevron" size={19} />
+        </button>
 
         <div className="irtms-sidebar-brand">
           <div className="irtms-brand-row">
@@ -579,6 +585,7 @@ export default function Sidebar({
                 <NavLink
                   key={item.path}
                   to={item.path}
+                  onClick={onMobileClose}
                   title={
                     collapsed
                       ? item.label
@@ -642,7 +649,10 @@ export default function Sidebar({
           <button
             type="button"
             className="irtms-sidebar-logout"
-            onClick={handleLogout}
+            onClick={() => {
+              onMobileClose?.();
+              handleLogout();
+            }}
             title={
               collapsed
                 ? "Logout"
