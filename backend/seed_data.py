@@ -687,6 +687,10 @@ def main() -> None:
             db
         )
 
+        city_alerts = seed_city_alerts(
+            db
+        )
+
         db.commit()
 
         print(
@@ -696,7 +700,8 @@ def main() -> None:
             "========================================\n"
             f"Historical records inserted: {historical}\n"
             f"Live-demo records inserted: {live}\n"
-            f"Alerts inserted:             {alerts}\n"
+            f"Curated alerts inserted:     {alerts}\n"
+            f"City/town demo alerts inserted: {city_alerts}\n"
             "========================================\n"
         )
 
