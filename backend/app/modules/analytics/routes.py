@@ -23,13 +23,19 @@ def get_heatmap(
         le=2000,
         description="Maximum number of traffic points.",
     ),
+    state: str | None = Query(default=None, min_length=2, max_length=100),
+    area: str | None = Query(default=None, min_length=2, max_length=255),
     db: Session = Depends(get_db),
 ) -> List[Dict[str, Any]]:
 
     service = AnalyticsService(db)
 
     try:
-        return service.get_heatmap(limit=limit)
+        return service.get_heatmap(
+            limit=limit,
+            state=state,
+            area=area,
+        )
 
     except ValueError as exc:
         raise HTTPException(
@@ -46,13 +52,18 @@ def get_heatmap(
 
 @router.get("/road-performance")
 def get_road_performance(
+    state: str | None = Query(default=None, min_length=2, max_length=100),
+    area: str | None = Query(default=None, min_length=2, max_length=255),
     db: Session = Depends(get_db),
 ) -> List[Dict[str, Any]]:
 
     service = AnalyticsService(db)
 
     try:
-        return service.get_road_performance()
+        return service.get_road_performance(
+            state=state,
+            area=area,
+        )
 
     except Exception as exc:
         raise HTTPException(
@@ -69,13 +80,19 @@ def get_trends(
         le=168,
         description="Number of recent hours to analyze.",
     ),
+    state: str | None = Query(default=None, min_length=2, max_length=100),
+    area: str | None = Query(default=None, min_length=2, max_length=255),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
 
     service = AnalyticsService(db)
 
     try:
-        return service.get_trends(hours=hours)
+        return service.get_trends(
+            hours=hours,
+            state=state,
+            area=area,
+        )
 
     except ValueError as exc:
         raise HTTPException(
@@ -92,6 +109,8 @@ def get_trends(
 
 @router.get("/summary")
 def get_analytics_summary(
+    state: str | None = Query(default=None, min_length=2, max_length=100),
+    area: str | None = Query(default=None, min_length=2, max_length=255),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
 
@@ -99,7 +118,10 @@ def get_analytics_summary(
 
     try:
         road_performance = (
-            service.get_road_performance()
+            service.get_road_performance(
+                state=state,
+                area=area,
+            )
         )
 
         heatmap = service.get_heatmap(
