@@ -13339,3 +13339,11 @@ body,
     grid-template-columns: 1fr;
   }
 }
+
+
+.scope-attribution {
+  grid-column: 1 / -1;
+  color: #6f96b4;
+  font-size: 9px;
+  line-height: 1.3;
+}
