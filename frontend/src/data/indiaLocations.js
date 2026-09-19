@@ -127,14 +127,51 @@ export function getAreasForState(stateName, query = "") {
     : [];
 
   const all = [...capitalItem, ...cities, ...districts];
-  const seen = new Set();
 
-  const unique = all.filter((item) => {
+  // Prefer a duplicate location entry that has real coordinates.
+  // The city catalog contains alternate spellings such as
+  // "Davanagere"/"Davangere"; the first entry can be coordinate-free.
+  const hasCoordinates = (item) => {
+    if (
+      item?.latitude === null ||
+      item?.latitude === undefined ||
+      item?.longitude === null ||
+      item?.longitude === undefined
+    ) {
+      return false;
+    }
+
+    const latitude = Number(item.latitude);
+    const longitude = Number(item.longitude);
+
+    return (
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude) &&
+      !(latitude === 0 && longitude === 0)
+    );
+  };
+
+  const uniqueByName = new Map();
+
+  all.forEach((item) => {
     const key = normalize(item.name);
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
+
+    if (!key) return;
+
+    const existing = uniqueByName.get(key);
+
+    if (
+      !existing ||
+      (hasCoordinates(item) &&
+        !hasCoordinates(existing))
+    ) {
+      uniqueByName.set(key, item);
+    }
   });
+
+  const unique = Array.from(
+    uniqueByName.values()
+  );
 
   const q = normalize(query);
   if (!q) return unique.slice(0, 5000);
