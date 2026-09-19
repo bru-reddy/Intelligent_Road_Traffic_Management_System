@@ -48,6 +48,39 @@ const normalize = (value) =>
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
 
+function editDistance(leftValue, rightValue) {
+  const left = normalize(leftValue);
+  const right = normalize(rightValue);
+
+  const previous = Array.from(
+    { length: right.length + 1 },
+    (_, index) => index
+  );
+
+  for (let i = 1; i <= left.length; i += 1) {
+    const current = [i];
+
+    for (let j = 1; j <= right.length; j += 1) {
+      const cost =
+        left[i - 1] === right[j - 1]
+          ? 0
+          : 1;
+
+      current[j] = Math.min(
+        current[j - 1] + 1,
+        previous[j] + 1,
+        previous[j - 1] + cost
+      );
+    }
+
+    for (let j = 0; j < current.length; j += 1) {
+      previous[j] = current[j];
+    }
+  }
+
+  return previous[right.length];
+}
+
 export function getStateInfo(name) {
   const target = normalize(name);
   return INDIA_STATES.find(
@@ -196,10 +229,30 @@ export function searchIndiaLocations(query = "", stateName = "") {
 
       const starts = q && label.startsWith(q);
       const includes = q && label.includes(q);
+      const distance =
+        q && q.length >= 5
+          ? editDistance(q, label)
+          : 99;
+
+      const allowedDistance =
+        q.length >= 8
+          ? 2
+          : q.length >= 5
+            ? 1
+            : 0;
 
       return {
         item,
-        score: !q ? 0 : starts ? 0 : includes ? 10 : 100,
+        score:
+          !q
+            ? 0
+            : starts
+              ? 0
+              : includes
+                ? 10
+                : distance <= allowedDistance
+                  ? 20 + distance
+                  : 100,
       };
     })
     .filter((entry) => entry.score < 100)
