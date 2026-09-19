@@ -540,16 +540,96 @@ const CITY_SUGGESTIONS = [
   { name: "Vijayawada", label: "Vijayawada, Andhra Pradesh", latitude: 16.5062, longitude: 80.648 },
 ];
 
+const HYDERABAD_ROAD_SUGGESTIONS = [
+  { name: "Hayathnagar", label: "Hayathnagar, Hyderabad", latitude: 17.3281, longitude: 78.6045 },
+  { name: "Uppal", label: "Uppal, Hyderabad", latitude: 17.4058, longitude: 78.5591 },
+  { name: "LB Nagar", label: "LB Nagar, Hyderabad", latitude: 17.3457, longitude: 78.5522 },
+  { name: "Gachibowli", label: "Gachibowli, Hyderabad", latitude: 17.4401, longitude: 78.3489 },
+  { name: "Hitech City", label: "Hitech City, Hyderabad", latitude: 17.4435, longitude: 78.3772 },
+  { name: "Madhapur", label: "Madhapur, Hyderabad", latitude: 17.4483, longitude: 78.3915 },
+  { name: "Kukatpally", label: "Kukatpally, Hyderabad", latitude: 17.4849, longitude: 78.4138 },
+  { name: "Mehdipatnam", label: "Mehdipatnam, Hyderabad", latitude: 17.3930, longitude: 78.4397 },
+  { name: "Secunderabad", label: "Secunderabad, Hyderabad", latitude: 17.4399, longitude: 78.4983 },
+  { name: "Banjara Hills", label: "Banjara Hills, Hyderabad", latitude: 17.4156, longitude: 78.4347 },
+  { name: "Begumpet", label: "Begumpet, Hyderabad", latitude: 17.4431, longitude: 78.4639 },
+  { name: "Outer Ring Road", label: "Outer Ring Road, Hyderabad", latitude: 17.3850, longitude: 78.4867 },
+  { name: "NH 65", label: "NH 65, Hyderabad", latitude: 17.3281, longitude: 78.6045 },
+  { name: "NH 163", label: "NH 163, Hyderabad", latitude: 17.4500, longitude: 78.5800 },
+  { name: "Gachibowli Main Road", label: "Gachibowli Main Road, Hyderabad", latitude: 17.4401, longitude: 78.3489 },
+  { name: "Hitech City Road", label: "Hitech City Road, Hyderabad", latitude: 17.4435, longitude: 78.3772 },
+  { name: "LB Nagar Junction", label: "LB Nagar Junction, Hyderabad", latitude: 17.3527, longitude: 78.5510 },
+  { name: "Madhapur Road", label: "Madhapur Road, Hyderabad", latitude: 17.4483, longitude: 78.3915 },
+  { name: "Mehdipatnam-Tolichowki Road", label: "Mehdipatnam-Tolichowki Road, Hyderabad", latitude: 17.3930, longitude: 78.4397 },
+  { name: "S.D. Road", label: "S.D. Road, Secunderabad", latitude: 17.4399, longitude: 78.4983 },
+];
+
+function normalizeSearchText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function editDistance(a, b) {
+  const left = normalizeSearchText(a);
+  const right = normalizeSearchText(b);
+  const previous = Array.from(
+    { length: right.length + 1 },
+    (_, index) => index
+  );
+
+  for (let i = 1; i <= left.length; i += 1) {
+    const current = [i];
+
+    for (let j = 1; j <= right.length; j += 1) {
+      const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+      current[j] = Math.min(
+        current[j - 1] + 1,
+        previous[j] + 1,
+        previous[j - 1] + cost
+      );
+    }
+
+    for (let j = 0; j < current.length; j += 1) {
+      previous[j] = current[j];
+    }
+  }
+
+  return previous[right.length];
+}
+
 function getLocalCitySuggestions(query) {
-  const normalized = String(query || "").trim().toLowerCase();
+  const normalized = normalizeSearchText(query);
 
   if (normalized.length < 2) return [];
 
-  return CITY_SUGGESTIONS
-    .filter((city) =>
-      city.name.toLowerCase().startsWith(normalized) ||
-      city.label.toLowerCase().includes(normalized)
-    )
+  const candidates = [
+    ...CITY_SUGGESTIONS,
+    ...HYDERABAD_ROAD_SUGGESTIONS,
+  ];
+
+  return candidates
+    .map((item) => {
+      const label = normalizeSearchText(
+        locationLabel(item)
+      );
+      const startsWith = label.startsWith(normalized);
+      const includes = label.includes(normalized);
+      const distance = editDistance(normalized, label);
+
+      const allowedDistance =
+        normalized.length >= 8 ? 2 :
+        normalized.length >= 5 ? 1 : 0;
+
+      let score = 1000;
+      if (startsWith) score = 0;
+      else if (includes) score = 10;
+      else if (distance <= allowedDistance) score = 20 + distance;
+
+      return { item, score };
+    })
+    .filter((entry) => entry.score < 1000)
+    .sort((a, b) => a.score - b.score)
+    .map((entry) => entry.item)
     .slice(0, 6);
 }
 
