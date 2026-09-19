@@ -145,6 +145,8 @@ def ingest_traffic(
 
 @router.get("/road-utilization")
 def get_road_utilization(
+    state: str | None = Query(default=None, min_length=2, max_length=100),
+    area: str | None = Query(default=None, min_length=2, max_length=255),
     db: Session = Depends(get_db),
 ) -> List[Dict[str, Any]]:
     """
