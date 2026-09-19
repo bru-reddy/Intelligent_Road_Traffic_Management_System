@@ -378,14 +378,51 @@ export default function TrafficMap({
           }
         ).setView(center, zoom);
 
-        L.tileLayer(
+        // OpenStreetMap is the primary map source because the traffic
+        // points are resolved against OSM road geometry. A Carto
+        // fallback keeps the geographic basemap visible if an OSM tile
+        // request is blocked or temporarily unavailable.
+        const osmLayer = L.tileLayer(
           "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
           {
             maxZoom: 19,
+            crossOrigin: true,
             attribution:
               '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
           }
         ).addTo(map);
+
+        let tileErrors = 0;
+        let fallbackLayer = null;
+
+        const useFallbackTiles = () => {
+          if (fallbackLayer || !map.hasLayer(osmLayer)) {
+            return;
+          }
+
+          map.removeLayer(osmLayer);
+
+          fallbackLayer = L.tileLayer(
+            "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+            {
+              maxZoom: 20,
+              subdomains: "abcd",
+              crossOrigin: true,
+              attribution:
+                '&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            }
+          ).addTo(map);
+        };
+
+        osmLayer.on("tileerror", () => {
+          tileErrors += 1;
+
+          // A few failed tiles are enough to indicate that the primary
+          // basemap is unavailable; switch before the user sees a blank map.
+          if (tileErrors >= 3) {
+            useFallbackTiles();
+          }
+        });
 
         mapInstanceRef.current = map;
 
