@@ -13347,3 +13347,48 @@ body,
   font-size: 9px;
   line-height: 1.3;
 }
+
+/* Dashboard selected-scope / no-live-data state */
+.dashboard-scope-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 11px 14px;
+  background: var(--gov-white);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+}
+.dashboard-scope-status-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: var(--gov-blue-600);
+  box-shadow: 0 0 0 4px rgba(47, 109, 242, 0.10);
+}
+.dashboard-scope-status div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.dashboard-scope-status strong {
+  color: var(--gov-navy-900);
+  font-size: 12px;
+  font-weight: 750;
+}
+.dashboard-scope-status span {
+  color: var(--gov-gray-600);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.traffic-map-selected-location {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--gov-blue-600);
+  border: 3px solid var(--gov-white);
+  box-shadow: 0 0 0 5px rgba(47, 109, 242, 0.18), 0 3px 10px rgba(15, 23, 42, 0.35);
+}
