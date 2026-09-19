@@ -350,8 +350,29 @@ class TrafficMonitoringService:
     def get_live_traffic_tomtom(
         self,
         roads: Optional[List[Dict[str, Any]]] = None,
+        state: Optional[str] = None,
+        area: Optional[str] = None,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
     ) -> List[Dict[str, Any]]:
-        monitoring_roads = self._get_monitoring_roads(roads)
+        # A selected monitoring area is represented by the road segment
+        # closest to its coordinates. TomTom's Flow Segment Data API
+        # supports exactly this point-based lookup.
+        if latitude is not None and longitude is not None:
+            selected_name = (
+                str(area or "Selected monitoring area").strip()
+                or "Selected monitoring area"
+            )
+
+            monitoring_roads = [
+                {
+                    "road_name": selected_name,
+                    "latitude": float(latitude),
+                    "longitude": float(longitude),
+                }
+            ]
+        else:
+            monitoring_roads = self._get_monitoring_roads(roads)
 
         results: List[Dict[str, Any]] = []
 
@@ -373,6 +394,12 @@ class TrafficMonitoringService:
                     road,
                 )
 
+                if state:
+                    normalized["state"] = str(state).strip()
+
+                if area:
+                    normalized["area"] = str(area).strip()
+
                 results.append(normalized)
 
             except Exception as exc:
@@ -381,42 +408,75 @@ class TrafficMonitoringService:
                     f"{road['road_name']}: {exc}"
                 )
 
-                # TomTom may be temporarily unavailable on the
-                # deployed free-tier service. Use the explicitly
-                # seeded demo-live observations instead of returning
-                # an HTTP-200 payload full of zero/unknown values.
-                fallback = (
-                    self.db.query(TrafficRecord)
-                    .filter(
-                        TrafficRecord.data_source == "demo-live"
-                    )
-                    .order_by(
-                        TrafficRecord.recorded_at.desc()
-                    )
-                    .all()
+                # The seeded Hyderabad observations remain available
+                # as a transparent demo fallback. They are used only
+                # for the default Hyderabad monitoring scope or when
+                # the selected road exactly matches a seeded road.
+                normalized_state = (
+                    str(state or "").strip().lower()
+                )
+                normalized_area = (
+                    str(area or "").strip().lower()
                 )
 
-                fallback_by_road = {
-                    record.road_name.strip().lower(): record
-                    for record in fallback
-                }
-
-                demo_record = fallback_by_road.get(
-                    road["road_name"].strip().lower()
+                use_hyderabad_demo = (
+                    not normalized_state
+                    or normalized_state == "telangana"
+                ) and (
+                    not normalized_area
+                    or normalized_area in {
+                        "hyderabad",
+                        "telangana",
+                    }
                 )
 
-                if demo_record is not None:
-                    results.append(
-                        self.serialize_record(demo_record)
+                if use_hyderabad_demo:
+                    fallback = (
+                        self.db.query(TrafficRecord)
+                        .filter(
+                            TrafficRecord.data_source == "demo-live"
+                        )
+                        .order_by(
+                            TrafficRecord.recorded_at.desc()
+                        )
+                        .all()
                     )
-                else:
-                    # If there is no exact road match, leave this
-                    # point out. The caller can use the remaining
-                    # valid demo-live observations.
-                    print(
-                        f"No demo-live fallback found for "
-                        f"{road['road_name']}"
+
+                    fallback_by_road = {
+                        record.road_name.strip().lower(): record
+                        for record in fallback
+                    }
+
+                    demo_record = fallback_by_road.get(
+                        road["road_name"].strip().lower()
                     )
+
+                    if demo_record is not None:
+                        demo = self.serialize_record(
+                            demo_record
+                        )
+                        demo["state"] = "Telangana"
+                        demo["area"] = (
+                            "Hyderabad"
+                            if normalized_area != "telangana"
+                            else "Telangana"
+                        )
+                        results.append(demo)
+                        continue
+
+                    # Hyderabad is the seeded demo scope. For that
+                    # scope, preserve the five configured monitoring
+                    # points rather than returning an empty dashboard.
+                    if normalized_area == "hyderabad":
+                        for record in fallback:
+                            demo = self.serialize_record(record)
+                            demo["state"] = "Telangana"
+                            demo["area"] = "Hyderabad"
+                            if not any(
+                                point.get("id") == demo.get("id")
+                                for point in results
+                            ):
+                                results.append(demo)
 
         return results
 
