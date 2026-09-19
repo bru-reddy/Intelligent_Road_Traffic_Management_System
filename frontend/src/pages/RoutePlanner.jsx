@@ -1405,6 +1405,34 @@ function resolveLocation(value, selectedLocation) {
         err
       );
 
+      try {
+        const fallbackRoutes =
+          await calculateBrowserRoutingFallback(
+            sourceLat,
+            sourceLon,
+            destinationLat,
+            destinationLon
+          );
+
+        if (fallbackRoutes.length > 0) {
+          setRoutes(fallbackRoutes);
+          setSelectedRoute(fallbackRoutes[0]);
+          setMessage(
+            `${fallbackRoutes.length} route option${
+              fallbackRoutes.length === 1
+                ? ""
+                : "s"
+            } found using the fallback road network because live TomTom routing was unavailable.`
+          );
+          return;
+        }
+      } catch (fallbackError) {
+        console.warn(
+          "Browser routing fallback failed:",
+          fallbackError
+        );
+      }
+
       setError(
         err?.response?.data?.detail ||
           err?.response?.data?.message ||
