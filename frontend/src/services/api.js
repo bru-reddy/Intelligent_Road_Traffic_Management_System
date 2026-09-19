@@ -555,10 +555,16 @@ export async function ingestTraffic(payload) {
   }
 }
 
-export async function getRoadUtilization() {
+export async function getRoadUtilization(options = {}) {
   try {
+    const params = {};
+
+    if (options.state) params.state = options.state;
+    if (options.area) params.area = options.area;
+
     const response = await client.get(
-      "/traffic/road-utilization"
+      "/traffic/road-utilization",
+      { params }
     );
 
     return extractData(response);
