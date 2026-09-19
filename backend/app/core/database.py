@@ -94,8 +94,8 @@ def _ensure_scope_columns() -> None:
                     'SET state = :state '
                     'WHERE state IS NULL '
                     'AND data_source IN '
-                    '("demo-live", '
-                    '"TomTom Traffic Index - Hyderabad 2025; aggregate; vehicle_count_proxy")'
+                    "('demo-live', "
+                    "'TomTom Traffic Index - Hyderabad 2025; aggregate; vehicle_count_proxy')"
                 ),
                 {"state": "Telangana"},
             )
