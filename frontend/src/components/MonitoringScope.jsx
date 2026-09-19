@@ -207,12 +207,6 @@ export default function MonitoringScope({
         </label>
       </div>
 
-      <small className="scope-attribution">
-        The dropdown uses the local India city/town catalog.
-        Coordinates are used to request live traffic for the
-        selected monitoring point; OpenStreetMap / Photon remains
-        available for route-location search.
-      </small>
     </div>
   );
 }
