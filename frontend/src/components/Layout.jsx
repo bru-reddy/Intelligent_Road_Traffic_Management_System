@@ -44,7 +44,7 @@ export default function Layout() {
       <main className="irtms-main-layout">
         <TopNavbar
           onMenuClick={() => setMobileSidebarOpen(true)}
-          showMobileMenu={false}
+          showMobileMenu={true}
         />
 
         <section className="content">
