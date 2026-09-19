@@ -793,83 +793,95 @@ out center tags;
 
         if not results and settings.TRAFFIC_SIMULATION_FALLBACK:
             selected = monitoring_roads[0]
-            simulated = self._build_simulated_traffic(
-                latitude=selected["latitude"],
-                longitude=selected["longitude"],
-                state=state,
-                area=area,
-            )
 
-            # Keep the fallback visible to the rest of IRTMS (analytics,
-            # road utilization and stored-traffic views) without creating
-            # a new row every refresh. Remove obsolete simulated road points
-            # for this scope so an old city layout cannot remain on the map
-            # after the OSM road set changes.
-            current_road_names = {
-                str(observation.get("road_name") or "").strip()
-                for observation in simulated
-            }
-
-            stale_query = (
-                self.db.query(TrafficRecord)
-                .filter(
-                    TrafficRecord.data_source == "simulation-fallback",
-                    TrafficRecord.state == str(state or "India").strip(),
-                    TrafficRecord.area == str(area or "Selected monitoring area").strip(),
-                )
-            )
-
-            for stale_record in stale_query.all():
-                if stale_record.road_name not in current_road_names:
-                    self.db.delete(stale_record)
-
-            for observation in simulated:
-                existing = (
-                    self.db.query(TrafficRecord)
-                    .filter(
-                        TrafficRecord.data_source == "simulation-fallback",
-                        TrafficRecord.state == observation.get("state"),
-                        TrafficRecord.area == observation.get("area"),
-                        TrafficRecord.road_name == observation.get("road_name"),
-                    )
-                    .first()
-                )
-
-                if existing is None:
-                    existing = TrafficRecord(
-                        road_name=observation["road_name"],
-                        state=observation.get("state"),
-                        area=observation.get("area"),
-                        latitude=observation["latitude"],
-                        longitude=observation["longitude"],
-                        vehicle_count=observation["vehicle_count"],
-                        avg_speed_kmph=observation["avg_speed_kmph"],
-                        free_flow_speed_kmph=observation["free_flow_speed_kmph"],
-                        congestion_level=observation["congestion_level"],
-                        data_source="simulation-fallback",
-                        recorded_at=datetime.now(timezone.utc),
-                    )
-                    self.db.add(existing)
-                else:
-                    existing.latitude = observation["latitude"]
-                    existing.longitude = observation["longitude"]
-                    existing.vehicle_count = observation["vehicle_count"]
-                    existing.avg_speed_kmph = observation["avg_speed_kmph"]
-                    existing.free_flow_speed_kmph = observation["free_flow_speed_kmph"]
-                    existing.congestion_level = observation["congestion_level"]
-                    existing.recorded_at = datetime.now(timezone.utc)
-
-            # Persistence is best-effort. The API must return the
-            # generated observations even if a database refresh/query is
-            # slow or temporarily unavailable; otherwise the dashboard
-            # incorrectly shows zero monitoring points.
+            # Generate the fallback before touching the database. The
+            # monitoring endpoint must remain useful even when the
+            # provider is unavailable or PostgreSQL is temporarily slow.
             try:
-                self.db.commit()
+                simulated = self._build_simulated_traffic(
+                    latitude=selected["latitude"],
+                    longitude=selected["longitude"],
+                    state=state,
+                    area=area,
+                )
             except Exception as exc:
-                self.db.rollback()
-                print(f"Simulation traffic persistence failed: {exc}")
+                print(f"Simulation traffic generation failed: {exc}")
+                simulated = []
 
-            results = simulated
+            if simulated:
+                # Persistence is deliberately best-effort. A database
+                # failure must never turn valid generated observations
+                # into an empty HTTP response.
+                try:
+                    current_road_names = {
+                        str(observation.get("road_name") or "").strip()
+                        for observation in simulated
+                    }
+
+                    scope_state = str(state or "India").strip()
+                    scope_area = str(
+                        area or "Selected monitoring area"
+                    ).strip()
+
+                    stale_query = (
+                        self.db.query(TrafficRecord)
+                        .filter(
+                            TrafficRecord.data_source == "simulation-fallback",
+                            TrafficRecord.state == scope_state,
+                            TrafficRecord.area == scope_area,
+                        )
+                    )
+
+                    for stale_record in stale_query.all():
+                        if stale_record.road_name not in current_road_names:
+                            self.db.delete(stale_record)
+
+                    for observation in simulated:
+                        existing = (
+                            self.db.query(TrafficRecord)
+                            .filter(
+                                TrafficRecord.data_source == "simulation-fallback",
+                                TrafficRecord.state == observation.get("state"),
+                                TrafficRecord.area == observation.get("area"),
+                                TrafficRecord.road_name == observation.get("road_name"),
+                            )
+                            .first()
+                        )
+
+                        if existing is None:
+                            self.db.add(
+                                TrafficRecord(
+                                    road_name=observation["road_name"],
+                                    state=observation.get("state"),
+                                    area=observation.get("area"),
+                                    latitude=observation["latitude"],
+                                    longitude=observation["longitude"],
+                                    vehicle_count=observation["vehicle_count"],
+                                    avg_speed_kmph=observation["avg_speed_kmph"],
+                                    free_flow_speed_kmph=observation["free_flow_speed_kmph"],
+                                    congestion_level=observation["congestion_level"],
+                                    data_source="simulation-fallback",
+                                    recorded_at=datetime.now(timezone.utc),
+                                )
+                            )
+                        else:
+                            existing.latitude = observation["latitude"]
+                            existing.longitude = observation["longitude"]
+                            existing.vehicle_count = observation["vehicle_count"]
+                            existing.avg_speed_kmph = observation["avg_speed_kmph"]
+                            existing.free_flow_speed_kmph = observation["free_flow_speed_kmph"]
+                            existing.congestion_level = observation["congestion_level"]
+                            existing.recorded_at = datetime.now(timezone.utc)
+
+                    self.db.commit()
+                except Exception as exc:
+                    self.db.rollback()
+                    print(f"Simulation traffic persistence failed: {exc}")
+
+                # Return the generated observations directly. Never
+                # re-query the database here: the UI needs the observations
+                # from this request even if persistence/read-back is slow.
+                results = simulated
 
         return results
 
