@@ -772,24 +772,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {!loading && (
-        <div className="dashboard-scope-status">
-          <span className="dashboard-scope-status-dot" />
-          <div>
-            <strong>
-              {monitoringScope?.area || monitoringScope?.state || "Selected area"}
-            </strong>
-            <span>
-              {hasSimulatedPoints
-                ? "Simulation observations are displayed because live provider data is unavailable."
-                : points.length > 0
-                  ? "Live traffic observations are available for this monitoring scope."
-                  : "Location selected, but no live traffic observations are currently available for this scope."}
-            </span>
-          </div>
-        </div>
-      )}
-
       <section className="dashboard-stats-grid">
         <StatCard
           label="MONITORED POINTS"
