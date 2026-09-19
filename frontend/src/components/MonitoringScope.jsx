@@ -38,15 +38,55 @@ export default function MonitoringScope({
       window.removeEventListener("irtms-monitoring-scope-changed", handler);
   }, []);
 
-  const chooseArea = (item) => {
+  const chooseArea = async (item) => {
     const info = getStateInfo(state);
+
+    let latitude = item?.latitude;
+    let longitude = item?.longitude;
+
+    if (
+      !Number.isFinite(Number(latitude)) ||
+      !Number.isFinite(Number(longitude))
+    ) {
+      try {
+        const response = await searchRoutes({
+          q: item?.name || item?.label || "",
+          state,
+        });
+
+        const remote = Array.isArray(response?.results)
+          ? response.results
+          : [];
+
+        const match = remote.find(
+          (result) =>
+            Number.isFinite(Number(result?.latitude)) &&
+            Number.isFinite(Number(result?.longitude))
+        );
+
+        if (match) {
+          latitude = Number(match.latitude);
+          longitude = Number(match.longitude);
+        }
+      } catch {
+        // Keep the state capital only as a last-resort fallback.
+      }
+    }
+
     storeMonitoringScope({
       state,
-      area: item.name,
-      latitude: item.latitude ?? info?.latitude,
-      longitude: item.longitude ?? info?.longitude,
+      area: item?.name || item?.label || state,
+      latitude:
+        Number.isFinite(Number(latitude))
+          ? Number(latitude)
+          : info?.latitude,
+      longitude:
+        Number.isFinite(Number(longitude))
+          ? Number(longitude)
+          : info?.longitude,
     });
-    setArea(item.name);
+
+    setArea(item?.name || item?.label || state);
     setSuggestions([]);
   };
 
