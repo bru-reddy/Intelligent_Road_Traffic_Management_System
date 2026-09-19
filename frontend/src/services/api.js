@@ -588,6 +588,14 @@ export async function getAlerts(options = {}) {
       params.severity = options.severity;
     }
 
+    if (options.state) {
+      params.state = options.state;
+    }
+
+    if (options.area) {
+      params.area = options.area;
+    }
+
     const response = await client.get(
       "/alerts",
       { params }
@@ -604,10 +612,16 @@ export async function getAlerts(options = {}) {
   }
 }
 
-export async function getActiveAlerts() {
+export async function getActiveAlerts(options = {}) {
   try {
+    const params = {};
+
+    if (options.state) params.state = options.state;
+    if (options.area) params.area = options.area;
+
     const response = await client.get(
-      "/alerts/active"
+      "/alerts/active",
+      { params }
     );
 
     return extractData(response);
@@ -621,10 +635,16 @@ export async function getActiveAlerts() {
   }
 }
 
-export async function getAlertSummary() {
+export async function getAlertSummary(options = {}) {
   try {
+    const params = {};
+
+    if (options.state) params.state = options.state;
+    if (options.area) params.area = options.area;
+
     const response = await client.get(
-      "/alerts/summary"
+      "/alerts/summary",
+      { params }
     );
 
     return extractData(response);
@@ -694,10 +714,16 @@ export async function createAlert(payload) {
   }
 }
 
-export async function getAnalyticsHeatmap() {
+export async function getAnalyticsHeatmap(options = {}) {
   try {
+    const params = {};
+
+    if (options.state) params.state = options.state;
+    if (options.area) params.area = options.area;
+
     const response = await client.get(
-      "/analytics/heatmap"
+      "/analytics/heatmap",
+      { params }
     );
 
     return extractData(response);
@@ -711,10 +737,16 @@ export async function getAnalyticsHeatmap() {
   }
 }
 
-export async function getRoadPerformance() {
+export async function getRoadPerformance(options = {}) {
   try {
+    const params = {};
+
+    if (options.state) params.state = options.state;
+    if (options.area) params.area = options.area;
+
     const response = await client.get(
-      "/analytics/road-performance"
+      "/analytics/road-performance",
+      { params }
     );
 
     return extractData(response);
@@ -728,10 +760,16 @@ export async function getRoadPerformance() {
   }
 }
 
-export async function getTrafficTrends() {
+export async function getTrafficTrends(options = {}) {
   try {
+    const params = {};
+
+    if (options.state) params.state = options.state;
+    if (options.area) params.area = options.area;
+
     const response = await client.get(
-      "/analytics/trends"
+      "/analytics/trends",
+      { params }
     );
 
     return extractData(response);
