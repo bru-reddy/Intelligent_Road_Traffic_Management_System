@@ -410,9 +410,26 @@ export default function LiveMonitoring() {
               extractTrafficData(storedResponse);
           }
         } else {
-          const response = await getLiveTraffic();
+          try {
+            const response =
+              await getLiveTomTomTraffic(
+                monitoringScope.latitude,
+                monitoringScope.longitude,
+                monitoringScope.state,
+                monitoringScope.area
+              );
 
-          rawPoints = extractTrafficData(response);
+            rawPoints =
+              extractTrafficData(response);
+          } catch {
+            if (isDemoScope) {
+              const response =
+                await getLiveTraffic();
+
+              rawPoints =
+                extractTrafficData(response);
+            }
+          }
         }
 
         if (!rawPoints.length && isDemoScope) {
