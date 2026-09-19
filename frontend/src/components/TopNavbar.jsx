@@ -155,6 +155,7 @@ function getStoredUser() {
 export default function TopNavbar({
   user: suppliedUser = {},
   onMenuClick,
+  showMobileMenu = true,
 }) {
   const location = useLocation();
 
@@ -215,14 +216,16 @@ export default function TopNavbar({
   return (
     <header className="top-navbar">
       <div className="navbar-left">
-        <button
-          type="button"
-          className="mobile-menu-button"
-          onClick={onMenuClick}
-          aria-label="Open navigation"
-        >
-          ☰
-        </button>
+        {showMobileMenu && (
+          <button
+            type="button"
+            className="mobile-menu-button"
+            onClick={onMenuClick}
+            aria-label="Open navigation"
+          >
+            ☰
+          </button>
+        )}
 
         <div className="navbar-page-info">
           <span className="navbar-system-name">
