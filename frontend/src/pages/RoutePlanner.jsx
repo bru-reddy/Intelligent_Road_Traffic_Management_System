@@ -898,10 +898,8 @@ function resolveLocation(value, selectedLocation) {
     }
 
     try {
-      const scope = getStoredMonitoringScope();
       const response = await searchRoutes({
         q: value,
-        state: scope?.state,
       });
 
       const suggestions =
@@ -1187,11 +1185,8 @@ function resolveLocation(value, selectedLocation) {
         setSearchingDestination(true);
       }
 
-      const scope = getStoredMonitoringScope();
-
       const response = await searchRoutes({
         q: query,
-        state: scope?.state,
       });
 
       const apiSuggestions =
