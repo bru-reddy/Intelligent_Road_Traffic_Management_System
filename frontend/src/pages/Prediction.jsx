@@ -290,6 +290,18 @@ function getLocalCitySuggestions(query) {
     return [];
   }
 
+  const scope = getStoredMonitoringScope();
+
+  const indiaMatches = searchIndiaLocations(
+    query,
+    scope?.state || ""
+  );
+
+  const globalMatches = searchIndiaLocations(
+    query,
+    ""
+  ).slice(0, 20);
+
   const roadSuggestions =
     HYDERABAD_ROAD_SUGGESTIONS.map((name) => ({
       name,
@@ -298,9 +310,13 @@ function getLocalCitySuggestions(query) {
     }));
 
   const candidates = [
+    ...indiaMatches,
+    ...globalMatches,
     ...CITY_SUGGESTIONS,
     ...roadSuggestions,
   ];
+
+  const seen = new Set();
 
   return candidates
     .map((item) => {
@@ -331,7 +347,18 @@ function getLocalCitySuggestions(query) {
 
       return { item, score };
     })
-    .filter((entry) => entry.score < 1000)
+    .filter((entry) => {
+      const key = normalizeSearchText(
+        locationLabel(entry.item)
+      );
+
+      if (entry.score >= 1000 || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    })
     .sort((a, b) => a.score - b.score)
     .map((entry) => entry.item)
     .slice(0, 8);
@@ -786,9 +813,13 @@ export default function Prediction() {
     searchTimerRef.current =
       setTimeout(async () => {
         try {
+          const scope =
+            getStoredMonitoringScope();
+
           const response =
             await searchRoutes({
               q: query,
+              state: scope?.state,
             });
 
           if (
