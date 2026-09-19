@@ -10,8 +10,8 @@ import {
   getLiveTraffic,
   getLiveTomTomTraffic,
   getStoredUser,
-  getStoredMonitoringScope,
 } from "../services/api";
+import { getStoredMonitoringScope } from "../data/indiaLocations";
 import TrafficMap from "../components/TrafficMap";
 import MonitoringScope from "../components/MonitoringScope.jsx";
 
