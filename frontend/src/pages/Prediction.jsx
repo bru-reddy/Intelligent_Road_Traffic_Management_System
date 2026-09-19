@@ -6,6 +6,7 @@ import {
   searchRoutes,
 } from "../services/api";
 import TrafficLoading from "../components/TrafficLoading";
+import { getStoredMonitoringScope, searchIndiaLocations } from "../data/indiaLocations";
 
 const DAYS = [
   "Sunday",
