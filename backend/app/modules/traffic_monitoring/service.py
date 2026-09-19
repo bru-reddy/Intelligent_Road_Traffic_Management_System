@@ -705,10 +705,11 @@ class TrafficMonitoringService:
 
     def get_road_utilization(
         self,
+        state: Optional[str] = None,
+        area: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        rows = (
-            self.db.query(
-                TrafficRecord.road_name,
+        query = self.db.query(
+            TrafficRecord.road_name,
                 func.avg(
                     TrafficRecord.vehicle_count
                 ).label(
@@ -729,13 +730,24 @@ class TrafficMonitoringService:
                 ).label(
                     "observation_count"
                 ),
+            ).filter(
+                TrafficRecord.road_name.isnot(None)
             )
-            .group_by(
-                TrafficRecord.road_name
+
+        if state:
+            query = query.filter(
+                TrafficRecord.state == state
             )
-            .order_by(
-                TrafficRecord.road_name
+
+        if area:
+            query = query.filter(
+                TrafficRecord.area == area
             )
+
+        rows = (
+            query
+            .group_by(TrafficRecord.road_name)
+            .order_by(TrafficRecord.road_name)
             .all()
         )
 
