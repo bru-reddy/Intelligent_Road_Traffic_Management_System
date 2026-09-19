@@ -491,6 +491,8 @@ class AlertService:
         self,
         status: Optional[str] = None,
         severity: Optional[str] = None,
+        state: Optional[str] = None,
+        area: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         normalized_status = None
 
@@ -531,6 +533,16 @@ class AlertService:
                 Alert.severity == normalized_severity
             )
 
+        if state:
+            query = query.filter(
+                Alert.state == state
+            )
+
+        if area:
+            query = query.filter(
+                Alert.area == area
+            )
+
         alerts = (
             query
             .order_by(
@@ -546,21 +558,35 @@ class AlertService:
 
     def get_active_alerts(
         self,
+        state: Optional[str] = None,
+        area: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         return self.get_alerts(
-            status="active"
+            status="active",
+            state=state,
+            area=area,
         )
 
     def get_summary(
         self,
+        state: Optional[str] = None,
+        area: Optional[str] = None,
     ) -> Dict[str, int]:
-        active_alerts = (
-            self.db.query(Alert)
-            .filter(
-                Alert.status == "active"
-            )
-            .all()
+        query = self.db.query(Alert).filter(
+            Alert.status == "active"
         )
+
+        if state:
+            query = query.filter(
+                Alert.state == state
+            )
+
+        if area:
+            query = query.filter(
+                Alert.area == area
+            )
+
+        active_alerts = query.all()
 
         summary = {
             "active_count": 0,
@@ -852,27 +878,41 @@ def list_alerts(
     db: Session,
     status: Optional[str] = None,
     severity: Optional[str] = None,
+    state: Optional[str] = None,
+    area: Optional[str] = None,
 ):
     return AlertService(db).get_alerts(
         status=status,
         severity=severity,
+        state=state,
+        area=area,
     )
 
 
 def get_active_alerts(
     db: Session,
+    state: Optional[str] = None,
+    area: Optional[str] = None,
 ):
     return AlertService(
         db
-    ).get_active_alerts()
+    ).get_active_alerts(
+        state=state,
+        area=area,
+    )
 
 
 def get_alert_summary(
     db: Session,
+    state: Optional[str] = None,
+    area: Optional[str] = None,
 ):
     return AlertService(
         db
-    ).get_summary()
+    ).get_summary(
+        state=state,
+        area=area,
+    )
 
 
 def create_alerts_from_traffic(
