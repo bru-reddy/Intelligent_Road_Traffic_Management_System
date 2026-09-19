@@ -353,6 +353,12 @@ export default function LiveMonitoring() {
       );
   }, []);
 
+  const isDemoScope =
+    String(monitoringScope?.state || "").toLowerCase() === "telangana" &&
+    ["hyderabad", "telangana"].includes(
+      String(monitoringScope?.area || "").toLowerCase()
+    );
+
   const isOperationalRole = [
     "traffic_operator",
     "system_operator",
@@ -396,7 +402,7 @@ export default function LiveMonitoring() {
             );
           }
 
-          if (!rawPoints.length) {
+          if (!rawPoints.length && isDemoScope) {
             const storedResponse =
               await getLiveTraffic();
 
@@ -409,7 +415,7 @@ export default function LiveMonitoring() {
           rawPoints = extractTrafficData(response);
         }
 
-        if (!rawPoints.length) {
+        if (!rawPoints.length && isDemoScope) {
           rawPoints = FALLBACK_POINTS;
         }
 
@@ -427,7 +433,9 @@ export default function LiveMonitoring() {
           setPoints(normalized);
         } else {
           setPoints(
-            FALLBACK_POINTS.map(normalizeTrafficPoint)
+            isDemoScope
+              ? FALLBACK_POINTS.map(normalizeTrafficPoint)
+              : []
           );
         }
 
@@ -449,7 +457,7 @@ export default function LiveMonitoring() {
         setRefreshing(false);
       }
     },
-    [isOperationalRole, monitoringScope]
+    [isOperationalRole, monitoringScope, isDemoScope]
   );
 
   useEffect(() => {
