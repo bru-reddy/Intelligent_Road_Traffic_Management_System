@@ -472,6 +472,12 @@ export default function Dashboard() {
       );
   }, []);
 
+  const isDemoScope =
+    String(monitoringScope?.state || "").toLowerCase() === "telangana" &&
+    ["hyderabad", "telangana"].includes(
+      String(monitoringScope?.area || "").toLowerCase()
+    );
+
   const isOperational = [
     "traffic_operator",
     "system_operator",
@@ -509,8 +515,9 @@ export default function Dashboard() {
               monitoringScope.area
             );
         } catch {
-          trafficResponse =
-            await getLiveTraffic();
+          trafficResponse = isDemoScope
+            ? await getLiveTraffic()
+            : [];
         }
 
         const rawTraffic =
@@ -533,7 +540,9 @@ export default function Dashboard() {
         setPoints(
           normalizedTraffic.length
             ? normalizedTraffic
-            : FALLBACK_POINTS
+            : isDemoScope
+              ? FALLBACK_POINTS
+              : []
         );
 
         try {
@@ -585,13 +594,17 @@ export default function Dashboard() {
             "Unable to load live traffic data."
         );
 
-        setPoints(FALLBACK_POINTS);
+        setPoints(
+          isDemoScope
+            ? FALLBACK_POINTS
+            : []
+        );
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [isOperational, monitoringScope]
+    [isOperational, monitoringScope, isDemoScope]
   );
 
   useEffect(() => {
