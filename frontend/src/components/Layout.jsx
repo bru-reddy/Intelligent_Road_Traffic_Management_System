@@ -25,7 +25,7 @@ export default function Layout() {
   }, []);
 
   return (
-    <div className="app-shell">
+    <div className="irtms-app-shell">
       <Sidebar
         mobileOpen={mobileSidebarOpen}
         onMobileClose={closeMobileSidebar}
@@ -40,7 +40,7 @@ export default function Layout() {
         />
       )}
 
-      <main className="main-content">
+      <main className="irtms-main-layout">
         <TopNavbar
           onMenuClick={() => setMobileSidebarOpen(true)}
         />
