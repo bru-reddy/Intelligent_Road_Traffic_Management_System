@@ -125,7 +125,9 @@ def get_analytics_summary(
         )
 
         heatmap = service.get_heatmap(
-            limit=2000
+            limit=2000,
+            state=state,
+            area=area,
         )
 
     except Exception as exc:
