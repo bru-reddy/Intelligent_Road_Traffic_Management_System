@@ -806,6 +806,47 @@ function resolveLocation(value, selectedLocation) {
 }
 
 
+  async function resolveLocationWithSearch(
+    value,
+    selectedLocation
+  ) {
+    const direct = resolveLocation(
+      value,
+      selectedLocation
+    );
+
+    if (direct) {
+      return direct;
+    }
+
+    try {
+      const scope = getStoredMonitoringScope();
+      const response = await searchRoutes({
+        q: value,
+        state: scope?.state,
+      });
+
+      const suggestions =
+        extractSuggestions(response);
+
+      for (const item of suggestions) {
+        const coordinates =
+          getLocationCoordinates(item);
+
+        if (coordinates) {
+          return {
+            location: item,
+            coordinates,
+          };
+        }
+      }
+    } catch {
+      // The caller will display the normal unresolved-location message.
+    }
+
+    return null;
+  }
+
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const leafletRef = useRef(null);
@@ -1184,13 +1225,14 @@ function resolveLocation(value, selectedLocation) {
       return;
     }
 
-    const resolvedSource = resolveLocation(
-      sourceValue,
-      sourceLocation
-    );
+    const resolvedSource =
+      await resolveLocationWithSearch(
+        sourceValue,
+        sourceLocation
+      );
 
     const resolvedDestination =
-      resolveLocation(
+      await resolveLocationWithSearch(
         destinationValue,
         destinationLocation
       );
