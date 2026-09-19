@@ -12,6 +12,7 @@ import {
   getLiveTomTomTraffic,
 } from "../services/api";
 import { getStoredMonitoringScope as readMonitoringScope } from "../data/indiaLocations";
+import { buildSimulationPoints } from "../services/trafficFallback";
 
 const REFRESH_INTERVAL = 60 * 1000;
 
@@ -460,7 +461,9 @@ export default function LiveMonitoring() {
           setPoints(
             isDemoScope
               ? FALLBACK_POINTS.map(normalizeTrafficPoint)
-              : []
+              : buildSimulationPoints(monitoringScope).map(
+                  normalizeTrafficPoint
+                )
           );
         }
 
@@ -477,6 +480,14 @@ export default function LiveMonitoring() {
             err?.message ||
             "Unable to load live traffic data."
         );
+
+        if (!isDemoScope) {
+          setPoints(
+            buildSimulationPoints(monitoringScope).map(
+              normalizeTrafficPoint
+            )
+          );
+        }
       } finally {
         setLoading(false);
         setRefreshing(false);
