@@ -122,6 +122,15 @@ class TrafficMonitoringService:
             "free_flow_speed": record.free_flow_speed_kmph,
             "congestion_level": record.congestion_level,
             "data_source": record.data_source,
+            "data_source_label": (
+                "Simulated demo traffic"
+                if record.data_source == "simulation-fallback"
+                else record.data_source
+            ),
+            "is_simulated": record.data_source == "simulation-fallback",
+            "vehicle_count_estimated": (
+                record.data_source == "simulation-fallback"
+            ),
             "recorded_at": (
                 record.recorded_at.isoformat()
                 if record.recorded_at
@@ -607,12 +616,73 @@ class TrafficMonitoringService:
 
         if not results and settings.TRAFFIC_SIMULATION_FALLBACK:
             selected = monitoring_roads[0]
-            results = self._build_simulated_traffic(
+            simulated = self._build_simulated_traffic(
                 latitude=selected["latitude"],
                 longitude=selected["longitude"],
                 state=state,
                 area=area,
             )
+
+            # Keep the fallback visible to the rest of IRTMS (analytics,
+            # road utilization and stored-traffic views) without creating
+            # a new row every refresh.
+            for observation in simulated:
+                existing = (
+                    self.db.query(TrafficRecord)
+                    .filter(
+                        TrafficRecord.data_source == "simulation-fallback",
+                        TrafficRecord.state == observation.get("state"),
+                        TrafficRecord.area == observation.get("area"),
+                        TrafficRecord.road_name == observation.get("road_name"),
+                    )
+                    .first()
+                )
+
+                if existing is None:
+                    existing = TrafficRecord(
+                        road_name=observation["road_name"],
+                        state=observation.get("state"),
+                        area=observation.get("area"),
+                        latitude=observation["latitude"],
+                        longitude=observation["longitude"],
+                        vehicle_count=observation["vehicle_count"],
+                        avg_speed_kmph=observation["avg_speed_kmph"],
+                        free_flow_speed_kmph=observation["free_flow_speed_kmph"],
+                        congestion_level=observation["congestion_level"],
+                        data_source="simulation-fallback",
+                        recorded_at=datetime.now(timezone.utc),
+                    )
+                    self.db.add(existing)
+                else:
+                    existing.latitude = observation["latitude"]
+                    existing.longitude = observation["longitude"]
+                    existing.vehicle_count = observation["vehicle_count"]
+                    existing.avg_speed_kmph = observation["avg_speed_kmph"]
+                    existing.free_flow_speed_kmph = observation["free_flow_speed_kmph"]
+                    existing.congestion_level = observation["congestion_level"]
+                    existing.recorded_at = datetime.now(timezone.utc)
+
+            try:
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+                raise
+
+            stored = (
+                self.db.query(TrafficRecord)
+                .filter(
+                    TrafficRecord.data_source == "simulation-fallback",
+                    TrafficRecord.state == str(state or "India").strip(),
+                    TrafficRecord.area == str(area or "Selected monitoring area").strip(),
+                )
+                .order_by(TrafficRecord.road_name)
+                .all()
+            )
+
+            results = [
+                self.serialize_record(record)
+                for record in stored
+            ]
 
         return results
 
