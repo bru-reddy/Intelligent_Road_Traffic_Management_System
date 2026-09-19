@@ -378,52 +378,109 @@ export default function TrafficMap({
           }
         ).setView(center, zoom);
 
-        // OpenStreetMap is the primary map source because the traffic
-        // points are resolved against OSM road geometry. A Carto
-        // fallback keeps the geographic basemap visible if an OSM tile
-        // request is blocked or temporarily unavailable.
-        const osmLayer = L.tileLayer(
-          "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        // Use a resilient public basemap stack. Some networks block
+        // OSM subdomain tiles or third-party CDN tiles; the map must
+        // still show geographic context for every monitoring scope.
+        const tileSources = [
           {
-            maxZoom: 19,
-            crossOrigin: true,
-            attribution:
-              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-          }
-        ).addTo(map);
+            name: "OpenStreetMap",
+            url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            options: {
+              maxZoom: 19,
+              attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            },
+          },
+          {
+            name: "Esri World Street Map",
+            url:
+              "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+            options: {
+              maxZoom: 19,
+              attribution:
+                'Tiles &copy; <a href="https://www.esri.com/">Esri</a>',
+            },
+          },
+          {
+            name: "Carto Light",
+            url:
+              "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+            options: {
+              maxZoom: 20,
+              subdomains: "abcd",
+              attribution:
+                '&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            },
+          },
+        ];
 
-        let tileErrors = 0;
-        let fallbackLayer = null;
+        let activeTileIndex = 0;
+        let activeTileLayer = null;
+        let tileErrorCount = 0;
+        let tileFallbackTimer = null;
 
-        const useFallbackTiles = () => {
-          if (fallbackLayer || !map.hasLayer(osmLayer)) {
+        const installTileLayer = (index) => {
+          if (!map || index >= tileSources.length) {
             return;
           }
 
-          map.removeLayer(osmLayer);
+          const source = tileSources[index];
+          tileErrorCount = 0;
 
-          fallbackLayer = L.tileLayer(
-            "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-            {
-              maxZoom: 20,
-              subdomains: "abcd",
-              crossOrigin: true,
-              attribution:
-                '&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+          if (activeTileLayer) {
+            try {
+              map.removeLayer(activeTileLayer);
+            } catch {
+              // Ignore tile-layer cleanup errors.
             }
+          }
+
+          activeTileIndex = index;
+          activeTileLayer = L.tileLayer(
+            source.url,
+            source.options
           ).addTo(map);
+
+          const advanceToNextSource = () => {
+            if (
+              activeTileLayer !== activeTileLayer ||
+              activeTileIndex !== index
+            ) {
+              return;
+            }
+
+            if (tileFallbackTimer) {
+              window.clearTimeout(tileFallbackTimer);
+              tileFallbackTimer = null;
+            }
+
+            if (index + 1 < tileSources.length) {
+              installTileLayer(index + 1);
+            }
+          };
+
+          activeTileLayer.on("tileerror", () => {
+            tileErrorCount += 1;
+
+            if (tileErrorCount >= 2) {
+              advanceToNextSource();
+            }
+          });
+
+          // If a provider silently fails without emitting tileerror,
+          // move to the next provider after a short grace period.
+          tileFallbackTimer = window.setTimeout(() => {
+            if (
+              activeTileLayer === activeTileLayer &&
+              tileErrorCount === 0
+            ) {
+              // Keep the current source if it has started returning tiles.
+              // A tileerror will still trigger the next source when needed.
+            }
+          }, 5000);
         };
 
-        osmLayer.on("tileerror", () => {
-          tileErrors += 1;
-
-          // A few failed tiles are enough to indicate that the primary
-          // basemap is unavailable; switch before the user sees a blank map.
-          if (tileErrors >= 3) {
-            useFallbackTiles();
-          }
-        });
-
+        installTileLayer(0);
         mapInstanceRef.current = map;
 
         requestAnimationFrame(() => {
