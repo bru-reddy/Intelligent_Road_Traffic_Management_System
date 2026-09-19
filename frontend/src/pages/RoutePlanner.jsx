@@ -43,6 +43,84 @@ function routeName(route, index) {
   );
 }
 
+async function calculateBrowserRoutingFallback(
+  sourceLat,
+  sourceLon,
+  destinationLat,
+  destinationLon
+) {
+  const coordinates =
+    `${sourceLon},${sourceLat};${destinationLon},${destinationLat}`;
+
+  const url =
+    `https://router.project-osrm.org/route/v1/driving/${coordinates}` +
+    "?overview=full&geometries=geojson&alternatives=true&steps=false";
+
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Fallback routing service returned HTTP ${response.status}.`
+    );
+  }
+
+  const data = await response.json();
+
+  if (data?.code !== "Ok" || !Array.isArray(data?.routes)) {
+    return [];
+  }
+
+  return data.routes.map((route, index) => {
+    const distanceKm =
+      Number(route?.distance || 0) / 1000;
+
+    const durationMinutes =
+      Number(route?.duration || 0) / 60;
+
+    const geometry =
+      route?.geometry?.coordinates
+        ?.map((point) => {
+          if (!Array.isArray(point) || point.length < 2) {
+            return null;
+          }
+
+          const longitude = Number(point[0]);
+          const latitude = Number(point[1]);
+
+          if (
+            !Number.isFinite(latitude) ||
+            !Number.isFinite(longitude)
+          ) {
+            return null;
+          }
+
+          return [latitude, longitude];
+        })
+        .filter(Boolean) || [];
+
+    return {
+      name:
+        index === 0
+          ? "Best Route"
+          : `Alternative Route ${index}`,
+      distance_km: Number(distanceKm.toFixed(2)),
+      estimated_time_minutes:
+        Number(durationMinutes.toFixed(1)),
+      traffic_delay_minutes: 0,
+      base_time_minutes:
+        Number(durationMinutes.toFixed(1)),
+      traffic_level: "unknown",
+      traffic_delay_seconds: 0,
+      geometry,
+      fallback_provider: "OpenStreetMap routing",
+    };
+  });
+}
+
 function getDistance(route) {
   const value =
     route?.distance_km ??
@@ -1279,8 +1357,25 @@ function resolveLocation(value, selectedLocation) {
       });
 
       const data = extractData(response);
-      const calculatedRoutes =
+      let calculatedRoutes =
         extractRoutes(response);
+
+      if (calculatedRoutes.length === 0) {
+        try {
+          calculatedRoutes =
+            await calculateBrowserRoutingFallback(
+              sourceLat,
+              sourceLon,
+              destinationLat,
+              destinationLon
+            );
+        } catch (fallbackError) {
+          console.warn(
+            "Browser routing fallback failed:",
+            fallbackError
+          );
+        }
+      }
 
       setRoutes(calculatedRoutes);
 
@@ -1289,17 +1384,24 @@ function resolveLocation(value, selectedLocation) {
           calculatedRoutes[0]
         );
 
+        const usingFallback =
+          calculatedRoutes[0]?.fallback_provider;
+
         setMessage(
           `${calculatedRoutes.length} route option${
             calculatedRoutes.length === 1
               ? ""
               : "s"
-          } found.`
+          } found${
+            usingFallback
+              ? " using the fallback road network because live TomTom routing was unavailable."
+              : "."
+          }`
         );
       } else {
         setMessage(
           data?.message ||
-            "No alternative routes were returned for the selected locations."
+            "No route could be calculated for the selected locations."
         );
       }
     } catch (err) {
