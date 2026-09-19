@@ -780,9 +780,11 @@ export default function Dashboard() {
               {monitoringScope?.area || monitoringScope?.state || "Selected area"}
             </strong>
             <span>
-              {points.length > 0
-                ? "Live traffic observations are available for this monitoring scope."
-                : "Location selected, but no live traffic observations are currently available for this scope."}
+              {hasSimulatedPoints
+                ? "Simulation observations are displayed because live provider data is unavailable."
+                : points.length > 0
+                  ? "Live traffic observations are available for this monitoring scope."
+                  : "Location selected, but no live traffic observations are currently available for this scope."}
             </span>
           </div>
         </div>
@@ -864,15 +866,15 @@ export default function Dashboard() {
             <div className="dashboard-panel-meta">
               <span className="live-map-status">
                 <span className="status-live-dot" />
-                Live
+                {hasSimulatedPoints ? "Simulation" : "Live"}
               </span>
 
               <span className="panel-divider" />
 
               <span>
                 {mappedPoints.length > 0
-                  ? `${mappedPoints.length} monitoring point${mappedPoints.length === 1 ? "" : "s"}`
-                  : "No live observations"}
+                  ? `${mappedPoints.length} ${hasSimulatedPoints ? "simulation" : "monitoring"} point${mappedPoints.length === 1 ? "" : "s"}`
+                  : "No observations"}
               </span>
 
               <button
