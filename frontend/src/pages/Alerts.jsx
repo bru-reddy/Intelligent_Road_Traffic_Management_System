@@ -10,6 +10,7 @@ import {
   getAlerts,
   resolveAlert,
 } from "../services/api";
+import { getStoredMonitoringScope } from "../data/indiaLocations";
 
 const OPERATIONAL_ROLES = [
   "traffic_operator",
@@ -316,6 +317,28 @@ export default function Alerts() {
       currentRole
     );
 
+  const [monitoringScope, setMonitoringScope] =
+    useState(getStoredMonitoringScope);
+
+  useEffect(() => {
+    const handler = (event) => {
+      setMonitoringScope(
+        event.detail || getStoredMonitoringScope()
+      );
+    };
+
+    window.addEventListener(
+      "irtms-monitoring-scope-changed",
+      handler
+    );
+
+    return () =>
+      window.removeEventListener(
+        "irtms-monitoring-scope-changed",
+        handler
+      );
+  }, []);
+
   const [alerts, setAlerts] =
     useState([]);
 
@@ -355,7 +378,10 @@ export default function Alerts() {
         setError("");
 
         const response =
-          await getAlerts();
+          await getAlerts({
+            state: monitoringScope.state,
+            area: monitoringScope.area,
+          });
 
         setAlerts(
           normalizeAlerts(response)
@@ -377,7 +403,7 @@ export default function Alerts() {
         setRefreshing(false);
       }
     },
-    []
+    [monitoringScope]
   );
 
   useEffect(() => {
