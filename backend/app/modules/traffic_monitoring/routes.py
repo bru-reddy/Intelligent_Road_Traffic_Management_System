@@ -78,6 +78,10 @@ def get_live_traffic(
 
 @router.get("/live-tomtom")
 def get_live_tomtom_traffic(
+    latitude: float | None = Query(default=None, ge=-90, le=90),
+    longitude: float | None = Query(default=None, ge=-180, le=180),
+    state: str | None = Query(default=None, min_length=2, max_length=100),
+    area: str | None = Query(default=None, min_length=2, max_length=255),
     db: Session = Depends(get_db),
 ) -> List[Dict[str, Any]]:
     """
@@ -90,7 +94,12 @@ def get_live_tomtom_traffic(
     service = TrafficMonitoringService(db)
 
     try:
-        return service.get_live_traffic_tomtom()
+        return service.get_live_traffic_tomtom(
+            state=state,
+            area=area,
+            latitude=latitude,
+            longitude=longitude,
+        )
 
     except ValueError as exc:
         raise HTTPException(
