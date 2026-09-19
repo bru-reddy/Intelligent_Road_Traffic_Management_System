@@ -360,6 +360,140 @@ class TrafficMonitoringService:
         return valid_roads
 
     @staticmethod
+    def _get_osm_road_points(
+        latitude: float,
+        longitude: float,
+        limit: int = 5,
+    ) -> List[Dict[str, Any]]:
+        """
+        Resolve real nearby OpenStreetMap road segments for a selected city.
+        These coordinates are used only to place clearly-labelled simulated
+        traffic observations on actual roads when TomTom is unavailable.
+        """
+
+        import math
+        import requests
+
+        overpass_query = f"""
+[out:json][timeout:10];
+way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential)$"]
+  (around:7000,{float(latitude)},{float(longitude)});
+out center tags;
+"""
+
+        endpoints = [
+            "https://overpass-api.de/api/interpreter",
+            "https://overpass.kumi.systems/api/interpreter",
+        ]
+
+        candidates: List[Dict[str, Any]] = []
+
+        for endpoint in endpoints:
+            try:
+                response = requests.post(
+                    endpoint,
+                    data=overpass_query,
+                    headers={
+                        "User-Agent": "IRTMS/1.0 (traffic monitoring demo)",
+                        "Accept": "application/json",
+                    },
+                    timeout=12,
+                )
+                response.raise_for_status()
+                payload = response.json()
+                elements = payload.get("elements", [])
+
+                for element in elements:
+                    center = element.get("center") or {}
+                    road_lat = center.get("lat")
+                    road_lon = center.get("lon")
+
+                    if road_lat is None or road_lon is None:
+                        continue
+
+                    try:
+                        road_lat = float(road_lat)
+                        road_lon = float(road_lon)
+                    except (TypeError, ValueError):
+                        continue
+
+                    tags = element.get("tags") or {}
+                    road_name = str(tags.get("name") or "").strip()
+
+                    if not road_name:
+                        road_name = str(
+                            tags.get("ref")
+                            or tags.get("highway")
+                            or "Unnamed road"
+                        ).strip()
+
+                    # Approximate local distance so we can select roads
+                    # distributed around the selected city rather than
+                    # returning five copies of the same nearby segment.
+                    lat_distance = (road_lat - float(latitude)) * 111.0
+                    lon_distance = (
+                        (road_lon - float(longitude))
+                        * 111.0
+                        * max(
+                            0.15,
+                            math.cos(math.radians(float(latitude))),
+                        )
+                    )
+                    distance_km = math.sqrt(
+                        lat_distance**2 + lon_distance**2
+                    )
+
+                    candidates.append(
+                        {
+                            "road_name": road_name,
+                            "latitude": road_lat,
+                            "longitude": road_lon,
+                            "distance_km": distance_km,
+                            "highway": str(tags.get("highway") or ""),
+                        }
+                    )
+
+                if candidates:
+                    break
+            except Exception as exc:
+                print(f"OSM road lookup failed at {endpoint}: {exc}")
+
+        # Prefer distinct named roads and keep points geographically spread.
+        candidates.sort(
+            key=lambda item: (
+                item["distance_km"],
+                item["road_name"].lower(),
+            )
+        )
+
+        selected: List[Dict[str, Any]] = []
+        seen_names = set()
+
+        for candidate in candidates:
+            name_key = candidate["road_name"].strip().lower()
+
+            if name_key in seen_names:
+                continue
+
+            # Avoid clustering all five markers on nearly the same point.
+            too_close = any(
+                abs(candidate["latitude"] - item["latitude"]) < 0.0015
+                and abs(candidate["longitude"] - item["longitude"]) < 0.0015
+                for item in selected
+            )
+
+            if too_close:
+                continue
+
+            selected.append(candidate)
+            seen_names.add(name_key)
+
+            if len(selected) >= limit:
+                break
+
+        return selected
+
+    @staticmethod
     def _build_simulated_traffic(
         latitude: float,
         longitude: float,
@@ -368,8 +502,12 @@ class TrafficMonitoringService:
     ) -> List[Dict[str, Any]]:
         """
         Provide clearly-labelled simulated observations when the live
-        provider is unavailable. These values are for UI/demo continuity
-        and must never be presented as real-world traffic measurements.
+        provider is unavailable.
+
+        The important geographic distinction is that simulated traffic is
+        attached to real nearby OpenStreetMap road coordinates whenever
+        possible. It is still synthetic traffic data and must never be
+        presented as a real-world measurement.
         """
         import hashlib
         import math
@@ -387,23 +525,41 @@ class TrafficMonitoringService:
         minute_phase = int(time.time() // 60)
         points: List[Dict[str, Any]] = []
 
-        offsets = [
-            (-0.008, -0.010),
-            (0.006, -0.004),
-            (-0.004, 0.008),
-            (0.010, 0.006),
-            (-0.009, 0.012),
-        ]
+        road_points = TrafficMonitoringService._get_osm_road_points(
+            latitude=latitude,
+            longitude=longitude,
+            limit=5,
+        )
 
-        corridor_names = [
-            "Central Corridor",
-            "Main Road Corridor",
-            "Market Corridor",
-            "Ring Road Corridor",
-            "Highway Connector",
-        ]
+        # If OSM is temporarily unavailable, retain a geographic fallback
+        # around the selected location rather than failing the dashboard.
+        if not road_points:
+            offsets = [
+                (-0.008, -0.010),
+                (0.006, -0.004),
+                (-0.004, 0.008),
+                (0.010, 0.006),
+                (-0.009, 0.012),
+            ]
 
-        for index, (lat_offset, lon_offset) in enumerate(offsets):
+            corridor_names = [
+                "Central Corridor",
+                "Main Road Corridor",
+                "Market Corridor",
+                "Ring Road Corridor",
+                "Highway Connector",
+            ]
+
+            road_points = [
+                {
+                    "road_name": f"{area_name} — {corridor_names[index]}",
+                    "latitude": float(latitude) + lat_offset,
+                    "longitude": float(longitude) + lon_offset,
+                }
+                for index, (lat_offset, lon_offset) in enumerate(offsets)
+            ]
+
+        for index, road in enumerate(road_points[:5]):
             phase = (
                 seed % 360
             ) / 57.2958 + (minute_phase + index * 7) * 0.035
@@ -425,33 +581,23 @@ class TrafficMonitoringService:
                 free_flow,
             )
 
-            # This is an explicitly estimated demo volume, not a
-            # sensor-derived vehicle count.
             vehicle_count = int(
                 250
                 + (1.0 - speed_ratio) * 1100
                 + ((seed + index * 97) % 180)
             )
 
-            point_latitude = max(
-                -90.0,
-                min(90.0, float(latitude) + lat_offset),
-            )
-            point_longitude = max(
-                -180.0,
-                min(180.0, float(longitude) + lon_offset),
-            )
-
             points.append(
                 {
                     "id": f"sim-{seed}-{index}",
-                    "road_name": (
-                        f"{area_name} — {corridor_names[index]}"
+                    "road_name": str(
+                        road.get("road_name")
+                        or f"{area_name} — Road {index + 1}"
                     ),
                     "state": state_name,
                     "area": area_name,
-                    "latitude": round(point_latitude, 6),
-                    "longitude": round(point_longitude, 6),
+                    "latitude": round(float(road["latitude"]), 6),
+                    "longitude": round(float(road["longitude"]), 6),
                     "vehicle_count": vehicle_count,
                     "vehicle_count_estimated": True,
                     "avg_speed_kmph": round(current_speed, 2),
@@ -473,7 +619,11 @@ class TrafficMonitoringService:
                     "road_closed": False,
                     "coordinates": [],
                     "data_source": "simulation-fallback",
-                    "data_source_label": "Simulated demo traffic",
+                    "data_source_label": (
+                        "Simulated demo traffic on OpenStreetMap road"
+                        if road_points
+                        else "Simulated demo traffic"
+                    ),
                     "is_simulated": True,
                     "recorded_at": datetime.now(
                         timezone.utc
