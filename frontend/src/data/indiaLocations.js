@@ -282,13 +282,51 @@ export function getDefaultMonitoringScope() {
 export function getStoredMonitoringScope() {
   try {
     const raw = localStorage.getItem("irtms_monitoring_scope");
+
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed?.state && parsed?.area) return parsed;
+
+      if (parsed?.state && parsed?.area) {
+        // Repair stale or missing coordinates from the local India
+        // location catalog. This is especially important for older
+        // saved selections that were created before city coordinates
+        // were populated.
+        const catalogMatch = getAreasForState(
+          parsed.state,
+          parsed.area
+        ).find(
+          (item) =>
+            normalize(item?.name) ===
+            normalize(parsed.area) &&
+            Number.isFinite(Number(item?.latitude)) &&
+            Number.isFinite(Number(item?.longitude))
+        );
+
+        if (catalogMatch) {
+          return {
+            state: parsed.state,
+            area: parsed.area,
+            latitude: Number(catalogMatch.latitude),
+            longitude: Number(catalogMatch.longitude),
+          };
+        }
+
+        if (
+          Number.isFinite(Number(parsed.latitude)) &&
+          Number.isFinite(Number(parsed.longitude))
+        ) {
+          return {
+            ...parsed,
+            latitude: Number(parsed.latitude),
+            longitude: Number(parsed.longitude),
+          };
+        }
+      }
     }
   } catch {
     // Ignore malformed local state.
   }
+
   return getDefaultMonitoringScope();
 }
 
