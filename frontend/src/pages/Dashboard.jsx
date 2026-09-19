@@ -538,7 +538,10 @@ export default function Dashboard() {
 
         try {
           const activeResponse =
-            await getActiveAlerts();
+            await getActiveAlerts({
+            state: monitoringScope.state,
+            area: monitoringScope.area,
+          });
 
           setAlerts(
             extractArray(activeResponse)
@@ -546,7 +549,10 @@ export default function Dashboard() {
         } catch {
           try {
             const summary =
-              await getAlertSummary();
+              await getAlertSummary({
+              state: monitoringScope.state,
+              area: monitoringScope.area,
+            });
 
             const summaryData =
               summary?.data ?? summary;
