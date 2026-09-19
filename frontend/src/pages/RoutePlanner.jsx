@@ -5,6 +5,7 @@ import {
 } from "../services/api";
 import "leaflet/dist/leaflet.css";
 import TrafficLoading from "../components/TrafficLoading.jsx";
+import { getStoredMonitoringScope, searchIndiaLocations } from "../data/indiaLocations";
 
 function extractData(response) {
   return response?.data ?? response;
@@ -602,10 +603,27 @@ function getLocalCitySuggestions(query) {
 
   if (normalized.length < 2) return [];
 
+  const scope = getStoredMonitoringScope();
+
+  const indiaMatches = searchIndiaLocations(
+    query,
+    scope?.state || ""
+  ).map((item) => ({
+    ...item,
+    label: item.label || `${item.name}, ${item.state || ""}`,
+  }));
+
+  const globalMatches = searchIndiaLocations(query, "")
+    .slice(0, 20);
+
   const candidates = [
+    ...indiaMatches,
+    ...globalMatches,
     ...CITY_SUGGESTIONS,
     ...HYDERABAD_ROAD_SUGGESTIONS,
   ];
+
+  const seen = new Set();
 
   return candidates
     .map((item) => {
@@ -627,10 +645,21 @@ function getLocalCitySuggestions(query) {
 
       return { item, score };
     })
-    .filter((entry) => entry.score < 1000)
+    .filter((entry) => {
+      const key = normalizeSearchText(
+        locationLabel(entry.item)
+      );
+
+      if (entry.score >= 1000 || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    })
     .sort((a, b) => a.score - b.score)
     .map((entry) => entry.item)
-    .slice(0, 6);
+    .slice(0, 8);
 }
 
 function mergeLocationSuggestions(apiSuggestions, query) {
@@ -1039,8 +1068,11 @@ function resolveLocation(value, selectedLocation) {
         setSearchingDestination(true);
       }
 
+      const scope = getStoredMonitoringScope();
+
       const response = await searchRoutes({
         q: query,
+        state: scope?.state,
       });
 
       const apiSuggestions =
