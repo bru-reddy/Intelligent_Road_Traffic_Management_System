@@ -14361,3 +14361,252 @@ body,
     padding: 24px 20px;
   }
 }
+
+/* ============================================================
+   MOBILE UI POLISH — FINAL OVERRIDES
+   ============================================================ */
+@media (max-width: 800px) {
+  /* Keep the mobile header compact and prevent the inline
+     desktop user width from squeezing the brand out of view. */
+  .top-navbar {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-height: 64px !important;
+    height: 64px !important;
+    padding: 8px 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+  }
+
+  .top-navbar .navbar-left {
+    display: flex !important;
+    align-items: center !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    overflow: hidden !important;
+  }
+
+  .top-navbar .mobile-menu-button {
+    display: grid !important;
+    place-items: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    flex: 0 0 40px !important;
+    margin: 0 9px 0 0 !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    font-size: 19px !important;
+  }
+
+  .top-navbar .navbar-page-info {
+    display: block !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    flex: 1 1 auto !important;
+    overflow: hidden !important;
+  }
+
+  .top-navbar .navbar-system-name {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    font-weight: 800 !important;
+  }
+
+  .top-navbar .navbar-divider,
+  .top-navbar .navbar-current-page {
+    display: none !important;
+  }
+
+  .top-navbar .navbar-right {
+    display: flex !important;
+    align-items: center !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  .top-navbar .navbar-user {
+    display: flex !important;
+    align-items: center !important;
+    min-width: 36px !important;
+    width: 36px !important;
+    max-width: 36px !important;
+    flex: 0 0 36px !important;
+    gap: 0 !important;
+  }
+
+  .top-navbar .navbar-user-avatar {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    flex: 0 0 36px !important;
+    border-radius: 50% !important;
+  }
+
+  .top-navbar .navbar-user-details {
+    display: none !important;
+  }
+
+  /* Never let the fixed bottom navigation cover the last cards,
+     tables or footer content while scrolling. */
+  .irtms-main-layout > .content {
+    box-sizing: border-box !important;
+    padding: 12px 12px calc(132px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .dashboard-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 4px 0 0 !important;
+  }
+
+  .dashboard-header {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .dashboard-header h1 {
+    font-size: clamp(24px, 5.8vw, 30px) !important;
+    line-height: 1.08 !important;
+  }
+
+  .dashboard-header p {
+    max-width: 100% !important;
+    font-size: 12px !important;
+  }
+
+  .dashboard-header-actions {
+    width: 100% !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+
+  .monitoring-scope,
+  .dashboard-scope-status,
+  .dashboard-stats-grid,
+  .dashboard-main-grid,
+  .traffic-table-panel,
+  .dashboard-footer-status {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .monitoring-scope {
+    overflow: hidden !important;
+  }
+
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .dashboard-stat {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .dashboard-stat-label,
+  .dashboard-stat-sub {
+    overflow-wrap: anywhere !important;
+  }
+
+  .dashboard-stat-value {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .dashboard-main-grid {
+    min-width: 0 !important;
+  }
+
+  .dashboard-panel {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .dashboard-panel-header {
+    min-width: 0 !important;
+  }
+
+  .dashboard-panel-meta {
+    min-width: 0 !important;
+  }
+
+  .dashboard-map-container,
+  .dashboard-map-container .map-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .irtms-mobile-nav {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+    height: 68px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .top-navbar .navbar-system-name {
+    font-size: 11px !important;
+  }
+
+  .top-navbar .mobile-menu-button {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    flex-basis: 38px !important;
+  }
+
+  .top-navbar .navbar-user,
+  .top-navbar .navbar-user-avatar {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    flex-basis: 34px !important;
+  }
+
+  .dashboard-stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-header-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-header-actions .tomtom-status {
+    grid-column: auto !important;
+  }
+
+  .monitoring-scope {
+    padding: 12px !important;
+  }
+
+  .dashboard-panel-header {
+    padding: 10px !important;
+  }
+
+  .dashboard-map-container,
+  .dashboard-map-container .map-wrap {
+    height: 280px !important;
+    min-height: 280px !important;
+  }
+
+  .irtms-mobile-nav {
+    left: 6px !important;
+    right: 6px !important;
+    height: 64px !important;
+    border-radius: 16px !important;
+  }
+}
