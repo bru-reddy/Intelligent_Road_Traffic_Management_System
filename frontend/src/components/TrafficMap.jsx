@@ -417,6 +417,7 @@ export default function TrafficMap({
         let activeTileIndex = 0;
         let activeTileLayer = null;
         let tileErrorCount = 0;
+        let tileLoaded = false;
         let tileFallbackTimer = null;
 
         const installTileLayer = (index) => {
@@ -426,6 +427,12 @@ export default function TrafficMap({
 
           const source = tileSources[index];
           tileErrorCount = 0;
+          tileLoaded = false;
+
+          if (tileFallbackTimer) {
+            window.clearTimeout(tileFallbackTimer);
+            tileFallbackTimer = null;
+          }
 
           if (activeTileLayer) {
             try {
@@ -436,14 +443,18 @@ export default function TrafficMap({
           }
 
           activeTileIndex = index;
-          activeTileLayer = L.tileLayer(
+
+          const layer = L.tileLayer(
             source.url,
             source.options
-          ).addTo(map);
+          );
+
+          activeTileLayer = layer;
+          layer.addTo(map);
 
           const advanceToNextSource = () => {
             if (
-              activeTileLayer !== activeTileLayer ||
+              activeTileLayer !== layer ||
               activeTileIndex !== index
             ) {
               return;
@@ -459,7 +470,17 @@ export default function TrafficMap({
             }
           };
 
-          activeTileLayer.on("tileerror", () => {
+          layer.on("tileload", () => {
+            if (activeTileLayer === layer) {
+              tileLoaded = true;
+            }
+          });
+
+          layer.on("tileerror", () => {
+            if (activeTileLayer !== layer) {
+              return;
+            }
+
             tileErrorCount += 1;
 
             if (tileErrorCount >= 2) {
@@ -467,19 +488,17 @@ export default function TrafficMap({
             }
           });
 
-          // If a provider silently fails without emitting tileerror,
-          // move to the next provider after a short grace period.
+          // If a provider cannot return tiles at all, move to the
+          // next public provider instead of leaving a blank basemap.
           tileFallbackTimer = window.setTimeout(() => {
             if (
-              activeTileLayer === activeTileLayer &&
-              tileErrorCount === 0
+              activeTileLayer === layer &&
+              !tileLoaded
             ) {
-              // Keep the current source if it has started returning tiles.
-              // A tileerror will still trigger the next source when needed.
+              advanceToNextSource();
             }
-          }, 5000);
+          }, 4500);
         };
-
         installTileLayer(0);
         mapInstanceRef.current = map;
 
