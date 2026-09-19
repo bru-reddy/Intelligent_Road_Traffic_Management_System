@@ -1090,8 +1090,8 @@ export default function Analytics() {
             area: monitoringScope.area,
           };
 
-          const results =
-            await Promise.allSettled([
+          const requestAnalytics = () =>
+            Promise.allSettled([
               api.get(
                 "/analytics/heatmap",
                 { params: scopeParams }
@@ -1109,6 +1109,83 @@ export default function Analytics() {
                 { params: scopeParams }
               ),
             ]);
+
+          let results =
+            await requestAnalytics();
+
+          // Analytics must not depend on the Dashboard being opened first.
+          // If a newly selected city has no stored observations yet, trigger
+          // one live/simulation observation for that exact monitoring scope.
+          // The backend persists successful TomTom observations and already
+          // persists simulation fallbacks, after which the analytics queries
+          // can read the newly available data.
+          const analyticsAreEmpty =
+            results.every((result) => {
+              if (result.status !== "fulfilled") {
+                return true;
+              }
+
+              const data = extractData(result.value);
+
+              if (Array.isArray(data)) {
+                return data.length === 0;
+              }
+
+              if (data && typeof data === "object") {
+                return Object.keys(data).length === 0;
+              }
+
+              return true;
+            });
+
+          const hasCoordinates =
+            monitoringScope?.latitude !== null &&
+            monitoringScope?.latitude !== undefined &&
+            monitoringScope?.longitude !== null &&
+            monitoringScope?.longitude !== undefined &&
+            Number.isFinite(
+              Number(monitoringScope.latitude)
+            ) &&
+            Number.isFinite(
+              Number(monitoringScope.longitude)
+            ) &&
+            !(
+              Number(monitoringScope.latitude) === 0 &&
+              Number(monitoringScope.longitude) === 0
+            );
+
+          if (
+            analyticsAreEmpty &&
+            hasCoordinates
+          ) {
+            try {
+              await api.get(
+                "/traffic/live-tomtom",
+                {
+                  params: {
+                    latitude: Number(
+                      monitoringScope.latitude
+                    ),
+                    longitude: Number(
+                      monitoringScope.longitude
+                    ),
+                    state:
+                      monitoringScope.state,
+                    area:
+                      monitoringScope.area,
+                  },
+                }
+              );
+
+              results =
+                await requestAnalytics();
+            } catch (liveError) {
+              console.warn(
+                "Analytics live-data warmup failed:",
+                liveError
+              );
+            }
+          }
 
           const [
             heatmapResult,
