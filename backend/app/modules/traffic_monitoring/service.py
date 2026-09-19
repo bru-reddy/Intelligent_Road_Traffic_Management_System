@@ -859,27 +859,17 @@ out center tags;
                     existing.congestion_level = observation["congestion_level"]
                     existing.recorded_at = datetime.now(timezone.utc)
 
+            # Persistence is best-effort. The API must return the
+            # generated observations even if a database refresh/query is
+            # slow or temporarily unavailable; otherwise the dashboard
+            # incorrectly shows zero monitoring points.
             try:
                 self.db.commit()
-            except Exception:
+            except Exception as exc:
                 self.db.rollback()
-                raise
+                print(f"Simulation traffic persistence failed: {exc}")
 
-            stored = (
-                self.db.query(TrafficRecord)
-                .filter(
-                    TrafficRecord.data_source == "simulation-fallback",
-                    TrafficRecord.state == str(state or "India").strip(),
-                    TrafficRecord.area == str(area or "Selected monitoring area").strip(),
-                )
-                .order_by(TrafficRecord.road_name)
-                .all()
-            )
-
-            results = [
-                self.serialize_record(record)
-                for record in stored
-            ]
+            results = simulated
 
         return results
 
