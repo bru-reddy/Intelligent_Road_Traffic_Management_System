@@ -533,6 +533,8 @@ out center tags;
 
         # If OSM is temporarily unavailable, retain a geographic fallback
         # around the selected location rather than failing the dashboard.
+        used_osm_roads = bool(road_points)
+
         if not road_points:
             offsets = [
                 (-0.008, -0.010),
@@ -621,7 +623,7 @@ out center tags;
                     "data_source": "simulation-fallback",
                     "data_source_label": (
                         "Simulated demo traffic on OpenStreetMap road"
-                        if road_points
+                        if used_osm_roads
                         else "Simulated demo traffic"
                     ),
                     "is_simulated": True,
